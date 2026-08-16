@@ -1,0 +1,55 @@
+# Single source of truth for traffic sign classes.
+# ml/, android/ and rpi/ must derive their class lists from this file.
+#
+# Scope: MVP (Stage 1), Germany/EU signs (StVO numbers in comments).
+# gtsrb_id: class index in the GTSRB dataset (for dataset mapping), null if absent.
+#
+# version bumps: increment when classes are added/removed/reordered.
+# Class `id` values are the model output indices — never reorder retroactively,
+# only append.
+
+version: 1
+region: DE
+
+classes:
+  - id: 0
+    name: speed_limit_30        # StVO 274-30
+    gtsrb_id: 1
+  - id: 1
+    name: speed_limit_50        # StVO 274-50
+    gtsrb_id: 2
+  - id: 2
+    name: speed_limit_60        # StVO 274-60
+    gtsrb_id: 3
+  - id: 3
+    name: speed_limit_70        # StVO 274-70
+    gtsrb_id: 4
+  - id: 4
+    name: speed_limit_80        # StVO 274-80
+    gtsrb_id: 5
+  - id: 5
+    name: speed_limit_100       # StVO 274-100
+    gtsrb_id: 7
+  - id: 6
+    name: speed_limit_120       # StVO 274-120
+    gtsrb_id: 8
+  - id: 7
+    name: end_speed_limit_80    # StVO 278-80 (GTSRB has only the -80 variant)
+    gtsrb_id: 6
+  - id: 8
+    name: end_all_restrictions  # StVO 282
+    gtsrb_id: 32
+  - id: 9
+    name: stop                  # StVO 206
+    gtsrb_id: 14
+  - id: 10
+    name: no_overtaking         # StVO 276 (cars)
+    gtsrb_id: 9
+  - id: 11
+    name: end_no_overtaking     # StVO 280
+    gtsrb_id: 41
+
+# Candidates for v2 (not in MVP):
+#   zone_30 (StVO 274.1) / end_zone_30 (274.2) — no GTSRB class, needs Mapillary/own data
+#   no_overtaking_trucks (277) / end (281)
+#   variable LED speed signs — likely need own collected data

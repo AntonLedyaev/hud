@@ -1,0 +1,43 @@
+# --- Datasets & model artifacts (never commit) ---
+ml/data/
+ml/runs/
+*.pt
+*.onnx
+*.tflite
+*.hef
+*.ckpt
+*.pth
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.python-version
+*.egg-info/
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# --- Android / Gradle ---
+android/.gradle/
+android/build/
+android/**/build/
+android/local.properties
+android/.idea/
+android/captures/
+*.apk
+*.aab
+*.keystore
+!debug.keystore
+
+# --- IDE / OS ---
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+
+# --- Env / secrets ---
+.env
+.env.*
