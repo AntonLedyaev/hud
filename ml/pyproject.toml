@@ -1,0 +1,42 @@
+# ml/ Python environment, managed by uv (https://docs.astral.sh/uv/)
+# Setup: `cd ml && uv sync` — creates .venv and installs everything.
+
+[project]
+name = "hud-ml"
+version = "0.1.0"
+description = "Model training & export for the DIY HUD project"
+requires-python = ">=3.11,<3.13"
+dependencies = [
+    "torch>=2.6",
+    "torchvision>=0.21",
+    "ultralytics>=8.3",     # YOLO training/export, pulls torch+torchvision
+    "albumentations>=1.4",
+    "opencv-python>=4.10",
+    "onnx>=1.16",
+    "onnxruntime>=1.19",      # sanity-check exported ONNX models on CPU
+    "pyyaml>=6.0",
+
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    "jupyter>=1.0",
+]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128" }]
+torchvision = [{ index = "pytorch-cu128" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
