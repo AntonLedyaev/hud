@@ -39,6 +39,24 @@ def test_valid_bundle_stages_metadata_and_model(source, tmp_path):
     assert (output / "model.tflite").read_bytes() == (source / "model.tflite").read_bytes()
 
 
+def test_confirmation_variant_preserves_weights_and_original(source, tmp_path):
+    from confirmation_variant import create_variant
+    original = (source / "manifest.json").read_bytes()
+    version = json.loads(original)["config"]["version"]
+    variant = tmp_path / "variant"
+    manifest = create_variant(source, variant, 3000, version + 1)
+    stage.stage(variant, tmp_path / "staged-variant")
+    assert manifest["config"]["confirmation_window_ms"] == 3000
+    assert manifest["config"]["version"] == version + 1
+    assert (variant / "model.tflite").read_bytes() == (source / "model.tflite").read_bytes()
+    assert (variant / "parity.json").read_bytes() == (source / "parity.json").read_bytes()
+    assert (source / "manifest.json").read_bytes() == original
+    with pytest.raises(ValueError):
+        create_variant(source, variant, 3000, version + 1)
+    with pytest.raises(ValueError):
+        create_variant(source, tmp_path / "invalid", 3000, version)
+
+
 @pytest.mark.parametrize("mutation", [
     "weights", "labels", "tensor", "profile", "parity", "contract"])
 def test_incompatible_bundles_rejected(source, tmp_path, mutation):

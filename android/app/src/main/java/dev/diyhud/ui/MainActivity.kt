@@ -89,7 +89,28 @@ class MainActivity : ComponentActivity() {
             Text("Diagnostics before Start")
             Switch(checked = ui.diagnostics, onCheckedChange = { model.diagnosticMode(it) })
         }
+        if (idle) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text("Save sample images")
+                Switch(checked = ui.samplingEnabled, onCheckedChange = { model.sampleMode(it) })
+            }
+            Text("Off by default · up to 1 image/s and 10 MB/session · private, unreviewed samples",
+                style = MaterialTheme.typography.bodySmall)
+        }
         Text(ui.message)
+        ui.evidence?.let { evidence ->
+            Text(if (evidence.incomplete) "Evidence incomplete: ${evidence.dropped} events lost. ${evidence.warning ?: ""}"
+                else "Local events saved: ${evidence.stored}/${evidence.attempted}",
+                color = if (evidence.incomplete) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+        }
+        ui.samples?.takeIf { it.enabled }?.let { samples ->
+            Text((if (samples.failed) "Sample evidence incomplete: " else "Sample images: ") +
+                "${samples.saved} · ${samples.bytes / 1000} / 10000 kB" +
+                (if (samples.limited || samples.failed) " · ${samples.warning}" else "") +
+                (if (samples.dropped > 0) " · dropped ${samples.dropped}" else ""),
+                color = if (samples.failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface)
+        }
+        if (ui.phase == Phase.STOPPING) Text("Closing session and saving local events...")
         if (idle) TextButton(onClick = settings) { Text("App settings") }
         CameraPanel(ui, model)
         Text("Experimental driver assistant · Always follow road signs.", style = MaterialTheme.typography.bodySmall)

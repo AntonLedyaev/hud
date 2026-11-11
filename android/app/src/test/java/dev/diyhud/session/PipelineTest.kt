@@ -79,6 +79,22 @@ class PipelineTest {
         assertFalse(next.result(old, 4, 400, 500, listOf(sign)))
         assertNull(next.state.speed.current)
     }
+    @Test fun widerWindowConfirmsSlowThirtyStreamAndReplaysWithItsConfig() {
+        val events = mutableListOf<DomainEvent>()
+        val experimental = config.copy(version = 2, minimumHits = 3, confirmationWindowMs = 3000)
+        val live = LiveSession("slow", "m", labels, experimental, events::add)
+        val initial = live.state
+        val thirty = sign.copy(classId = labels.classes.single { it.name == "speed_limit_30" }.id)
+        for ((index, capture) in listOf(0L, 700L, 1400L).withIndex()) {
+            live.tick(capture + 500)
+            live.result(live.token(), index.toLong(), capture, capture + 900, listOf(thirty))
+            assertEquals(index + 1, live.confirmationDebug.rows.single().hits)
+            if (index < 2) assertNull(live.state.speed.current)
+        }
+        assertEquals(30, live.state.speed.current)
+        assertEquals(experimental, events.last().config)
+        assertEquals(live.state, replay(initial, events, labels).last())
+    }
     @Test fun rgbaCropRespectsRowStrideChannelOrderAndBufferPosition() {
         val buffer = ByteBuffer.allocate(50)
         buffer.position(2)

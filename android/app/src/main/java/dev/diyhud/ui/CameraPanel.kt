@@ -34,6 +34,16 @@ import java.util.Locale
     var preview by remember { mutableStateOf<PreviewView?>(null) }
     var laidOut by remember { mutableStateOf(false) }
     if (ui.diagnostics && ui.phase == Phase.ACTIVE) {
+        ui.confirmation?.let { confirmation ->
+            Text("Confirmation window ${confirmation.windowMs} ms | confidence ≥ ${fmt(confirmation.confidence * 100)}% | IoU ≥ ${fmt(confirmation.associationIou * 100)}%")
+            confirmation.rows.sortedWith(compareByDescending<dev.diyhud.domain.ConfirmationProgress> { it.lastSeenMs }
+                .thenByDescending { it.hits }).take(6).forEach { row ->
+                Text("${labels[row.detection.classId]} #${row.trackId ?: "—"}: ${row.hits}/${row.required} · ${row.reason.text}\n" +
+                    "Last seen ${(ui.nowMs - row.lastSeenMs).coerceAtLeast(0)} ms ago" +
+                    (row.matchedIou?.let { " | matched IoU ${fmt(it * 100)}%" } ?: ""))
+            }
+            confirmation.notes.takeLast(3).forEach { Text(it) }
+        }
         Box(Modifier.fillMaxWidth().aspectRatio(3f / 4)) {
             AndroidView(modifier = Modifier.fillMaxSize(), onReset = null,
                 onRelease = { preview = null; laidOut = false }, factory = {
@@ -51,7 +61,9 @@ import java.util.Locale
                         val rect = previewBox(detection.box, frame.width, frame.height, size.width.toInt(), size.height.toInt())
                         drawRect(Color.Green, Offset(rect[0].toFloat(), rect[1].toFloat()),
                             Size((rect[2] - rect[0]).toFloat(), (rect[3] - rect[1]).toFloat()), style = Stroke(3f))
-                        drawContext.canvas.nativeCanvas.drawText("${labels[detection.classId]} ${fmt(detection.confidence * 100)}%",
+                        val progress = ui.confirmation?.rows?.find { it.detection == detection && it.trackId != null }
+                        val hits = progress?.let { " ${it.hits}/${it.required}" } ?: ""
+                        drawContext.canvas.nativeCanvas.drawText("${labels[detection.classId]} ${fmt(detection.confidence * 100)}%$hits",
                             rect[0].toFloat(), (rect[1].toFloat() - 5).coerceAtLeast(22f),
                             Paint().apply { color = android.graphics.Color.GREEN; textSize = 28f })
                     }

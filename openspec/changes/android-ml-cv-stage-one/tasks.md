@@ -55,11 +55,11 @@ Follow groups in dependency order. Pure contract/domain and dataset work can pro
 
 ## 7. Local evidence and bounded sampling
 
-- [ ] 7.1 Implement Room session/event storage with ordered sequence numbers, source links, model metadata and effective config snapshots; verify recorded confirmed batches, conflicts, resets, ticks, transitions and errors reconstruct an uninterrupted trip with the domain replay runner.
-- [ ] 7.2 Implement the bounded asynchronous evidence queue, storage budget and failure accounting; verify slow/full storage cannot stall inference, overflow produces counts/sequence gaps, the UI reports incomplete evidence, and no unbounded retries or silent evidence deletion occur.
-- [ ] 7.3 Implement default-off opt-in image sampling with a bounded encoding worker, frame-linked metadata and rate/byte limits; verify disabled sampling writes no images, enabled samples remain linked to their source frame, and reaching either limit stops new samples without stopping recognition.
-- [ ] 7.4 Implement interrupted-session and partial-image recovery; verify simulated process termination preserves committed events, marks the trip interrupted, cleans up incomplete image writes and never resumes its restriction state.
-- [ ] 7.5 Document evidence limits, gap semantics and the unreviewed status of samples; verify a sample trip shows the source event/model/config for each transition and clearly distinguishes full replay from a log with missing intervals.
+- [x] 7.1 Implement Room session/event storage with ordered sequence numbers, source links, model metadata and effective config snapshots; verify recorded confirmed batches, conflicts, resets, ticks, transitions and errors reconstruct an uninterrupted trip with the domain replay runner.
+- [x] 7.2 Implement the bounded asynchronous evidence queue, storage budget and failure accounting; verify slow/full storage cannot stall inference, overflow produces counts/sequence gaps, the UI reports incomplete evidence, and no unbounded retries or silent evidence deletion occur.
+- [x] 7.3 Implement default-off opt-in image sampling with a bounded encoding worker, frame-linked metadata and rate/byte limits; verify disabled sampling writes no images, enabled samples remain linked to their source frame, and reaching either limit stops new samples without stopping recognition.
+- [x] 7.4 Implement interrupted-session and partial-image recovery; verify simulated process termination preserves committed events, marks the trip interrupted, cleans up incomplete image writes and never resumes its restriction state.
+- [x] 7.5 Document evidence limits, gap semantics and the unreviewed status of samples; verify a sample trip shows the source event/model/config for each transition and clearly distinguishes full replay from a log with missing intervals.
 
 ## 8. Evidence review, export and deletion
 

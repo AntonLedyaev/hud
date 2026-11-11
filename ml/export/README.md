@@ -63,3 +63,19 @@ staging validator runs in the training Python environment and rejects mismatched
 weights/labels/profile or a failed parity report. Unsupported contracts fail
 explicitly rather than being silently converted in the Android loader.
 See `../../docs/TRAINED_EXPORT_RESULTS.md` for CPU parity and GPU probe findings.
+## Confirmation-window variant
+
+From the repository root, use the existing ML Python environment to produce a
+new experimental model/config pair without re-exporting weights:
+
+```powershell
+.\ml\.venv\Scripts\python.exe ml/export/confirmation_variant.py --source ml/runs/trained-bundle-v2 --destination ml/runs/trained-bundle-v2-confirmation-v2 --window-ms 3000 --config-version 2
+```
+
+This changes only effective config version/window, validates the original bundle,
+preserves its weights and source tensor parity, recomputes the profile's manifest
+hash and writes `configuration-variant.json`. Existing destinations are rejected;
+the original bundle is not modified. Tensor parity is not confirmation calibration.
+Android can select the variant via `-PmodelBundleDir=ABSOLUTE_PATH`; the default
+build continues to select the original baseline. All generated artifacts stay
+under ignored `ml/runs/`. See the Android README for the comparison walkthrough.

@@ -1,7 +1,9 @@
 package dev.diyhud.domain
 
-enum class Freshness { UNKNOWN, KNOWN, STALE }
-data class Estimate<T>(
+import kotlinx.serialization.Serializable
+
+@Serializable enum class Freshness { UNKNOWN, KNOWN, STALE }
+@Serializable data class Estimate<T>(
     val value: T? = null,
     val freshness: Freshness = Freshness.UNKNOWN,
     val sourceSequence: Long? = null,
@@ -13,7 +15,7 @@ data class Estimate<T>(
             copy(freshness = Freshness.STALE) else this
 }
 
-data class RestrictionState(
+@Serializable data class RestrictionState(
     val sessionId: String,
     val modelVersion: String,
     val labelsSha256: String,
@@ -45,6 +47,8 @@ class RestrictionReducer(labels: CanonicalLabels) {
         }
         if (event.resetGeneration != previous.generation) return previous
         val payload = event.payload
+        if (payload is Payload.Transition || payload is Payload.Conflict)
+            return previous.copy(sequence = event.sequence, offsetMs = event.offsetMs)
         if (payload is Payload.ConfirmedBatch && payload.frameId <= previous.frameId) return previous
         var state = previous.copy(sequence = event.sequence, offsetMs = event.offsetMs, reasons = emptyList())
         val reasons = mutableListOf<String>()

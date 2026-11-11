@@ -59,6 +59,23 @@ must not replace block 9's 20-minute sustained/thermal measurements.
 
 ## Operating limits and remaining work
 
+### Developer-reported outdoor check
+
+Reported 2026-11-11 using the current application: camera and diagnostic mode
+worked well outdoors, but speed-limit-30 detections were very unstable and no
+30 km/h estimate was confirmed on the HUD. This is a qualitative user report,
+not an annotated drive or a measured acceptance result. No recording, per-frame
+confidence/association trace, outdoor FPS, distance or lighting metadata was
+provided, so the exact rejection reason cannot be established from this check.
+
+The observation is consistent with the known timing mismatch below. Additional
+missed detections and unstable box association can also prevent confirmation.
+A useful next diagnostic is the number of associated hits within the active
+window, with explicit rejection/expiry reasons; candidate visibility alone does
+not establish that the temporal confirmation requirements were met.
+
+### Integration verification and acceptance limits
+
 All block 6 tasks are verified on the final installed build. The phone was
 unlocked before the final checks; earlier runs on a locked/Dozing phone are not
 counted as successful validation.
@@ -77,7 +94,7 @@ reopening succeeded after stop and failure, and native close ownership is also
 covered by adapter/slow-worker tests. This is not a sustained memory/leak profile
 or the 20-minute thermal acceptance run.
 
-Static checks: 31 JVM tests passed; Android lint reports 0 errors (16 warnings,
+Static checks after the diagnostic follow-up: 35 JVM tests passed; Android lint reports 0 errors (16 warnings,
 primarily pinned dependency updates and existing manifest/icon recommendations).
 The OpenSpec change validates strictly. See the README for rerun commands.
 
@@ -85,12 +102,42 @@ The current model has low detection quality and incomplete class coverage; see
 [baseline results](BASELINE_RESULTS.md) and [trained parity](TRAINED_EXPORT_RESULTS.md).
 At roughly 1.5 FPS, three observations can span more than the bundled 1000 ms
 confirmation window. Consequently a visible sign may never confirm. Calibration
-and performance tuning remain required by block 9; current settings are preserved
-and no road-use success is claimed from this integration check.
+and performance tuning remain required by block 9. The original config v1 is
+preserved; the explicit experimental comparison below uses a wider window.
+
+### Follow-up: confirmation progress and config v2
+
+Diagnostics now shows per-track hit counts, IoU association, time-window expiry,
+missed detections, confidence rejection, absence rearming and encounter deduplication.
+Snapshots are bounded and represent the latest analyzed capture; Reset/Stop clear
+the exposed diagnostic state. No image/event recording is added by this change.
+
+An explicitly selected `trained-bundle-v2-confirmation-v2` keeps the exact same
+model weights and uses config v2: **3 hits in 3000 ms**. Confidence, association,
+absence, expiry and STOP settings are unchanged. The default Gradle build still
+selects the original 1000 ms bundle; variant generation/build/rollback commands
+are in the Android README. The variant is not calibrated or frozen for acceptance.
+
+Controlled captures at 0/700/1400 ms demonstrate window expiry under v1 and
+confirmation under v2, including live/replay agreement at 30 km/h. These are
+synthetic timing fixtures, not evidence of improved outdoor recognition quality.
+Bundle tests verify unchanged weights/parity, source immutability, new manifest
+hash validation and overwrite rejection. Both trained-model Android parity/loader
+tests passed on Pixel with the experimental bundle (2.690 s). The original source
+parity remains applicable to identical weights/preprocessing, not to temporal
+confirmation quality or false transitions.
+
+Follow-up verification: 35 JVM tests, 8 Python bundle tests and the two Android
+trained parity/loader tests passed. Build/lint passed and the experimental APK
+was installed on Pixel. The real-camera diagnostic UI subsequently passed both
+foreground tests on the unlocked phone (24.364 s), including config/window display,
+Reset/Stop and state clearing. Block 9.1 remains open: this experiment does not freeze acceptance settings or establish
+outdoor false-transition/confirmation-delay metrics.
 
 No real drive, LED/night/rain coverage, complete-event evidence, 20-minute thermal
-run or final acceptance is claimed here. Block 7 adds durable event storage and
-bounded opt-in sampling; this block writes neither camera images nor trip logs.
+run or final acceptance is claimed here. The original block 6 wrote no trip logs;
+app 0.1.1 now adds Room event storage in block 7.1/7.2. Image sampling remains a
+separate task. See [storage checks](EVIDENCE_STORAGE_RESULTS.md).
 
 For reproducible commands and the permission-denial walkthrough, see
 [Android README](../android/README.md#camera-verification). Native-model parity and

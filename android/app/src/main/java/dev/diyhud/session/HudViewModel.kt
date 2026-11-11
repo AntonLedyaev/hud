@@ -11,6 +11,7 @@ import android.os.SystemClock
 import androidx.lifecycle.AndroidViewModel
 import dev.diyhud.camera.RgbFrame
 import dev.diyhud.domain.*
+import dev.diyhud.data.*
 import dev.diyhud.inference.LiteRtDetector
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -27,6 +28,9 @@ data class HudUi(
     val stats: PipelineStats = PipelineStats(), val nowMs: Long = 0,
     val metadata: String = "", val thermal: Int = 0,
     val alignmentErrorPx: Double? = null,
+    val confirmation: ConfirmationDebug? = null,
+    val evidence: EvidenceStatus? = null,
+    val samplingEnabled: Boolean = false, val samples: SampleStatus? = null,
 )
 
 /** Serializes domain updates separately from slow native inference. No camera buffer crosses workers. */
@@ -40,12 +44,26 @@ class HudViewModel(application: Application) : AndroidViewModel(application) {
     private var detector: LiteRtDetector? = null // accessed only on inferenceWorker
     private var session: LiveSession? = null
     private var processor: LatestFrameProcessor<RgbFrame>? = null
+    private var evidence: EvidenceWriter? = null
+    private var sampler: SampleWriter? = null
     private var metrics = PipelineMetrics()
     private var startNs = 0L
     private var lastResultMs = 0L
     private var request = 0L
     private var cleared = false
     init {
+        try {
+            RoomEvidenceStore.worker.execute {
+                try { RoomEvidenceStore.get(application).recover() }
+                catch (error: Exception) {
+                    synchronized(lock) { mutableUi.value = mutableUi.value.copy(evidence =
+                        EvidenceStatus(disabled = true, warning = "Previous evidence unavailable")) }
+                }
+            }
+        } catch (error: java.util.concurrent.RejectedExecutionException) {
+            mutableUi.value = mutableUi.value.copy(evidence = EvidenceStatus(disabled = true,
+                warning = "Evidence worker unavailable"))
+        }
         clockWorker.scheduleAtFixedRate({
             synchronized(lock) {
                 session?.let {
@@ -67,6 +85,10 @@ class HudViewModel(application: Application) : AndroidViewModel(application) {
     fun diagnosticMode(enabled: Boolean) = synchronized(lock) {
         if (mutableUi.value.phase in listOf(Phase.READY, Phase.ERROR))
             mutableUi.value = mutableUi.value.copy(diagnostics = enabled)
+    }
+    fun sampleMode(enabled: Boolean) = synchronized(lock) {
+        if (mutableUi.value.phase in listOf(Phase.READY, Phase.ERROR))
+            mutableUi.value = mutableUi.value.copy(samplingEnabled = enabled)
     }
     fun permissionDenied() = synchronized(lock) {
         mutableUi.value = mutableUi.value.copy(message = "Camera permission is required. Allow it in App settings, then press Start.")
@@ -91,24 +113,38 @@ class HudViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         val attempt = ++request
+        val sampleOptIn = mutableUi.value.samplingEnabled
         mutableUi.value = mutableUi.value.copy(phase = Phase.STARTING, restriction = null,
-            candidates = null, stats = PipelineStats(), alignmentErrorPx = null, message = "Validating bundled model...")
+            candidates = null, confirmation = null, evidence = null, samples = null, stats = PipelineStats(), alignmentErrorPx = null, message = "Validating bundled model...")
         inferenceWorker.execute {
             try {
                 val engine = LiteRtDetector.open(getApplication<Application>().assets)
+                detector = engine
+                val app = getApplication<Application>()
+                val manifest = app.assets.open("model/manifest.json").bufferedReader().use { it.readText() }
+                val appVersion = app.packageManager.getPackageInfo(app.packageName, 0).versionName ?: "unknown"
                 synchronized(lock) {
-                    if (cleared || attempt != request) { engine.close(); return@execute }
-                    detector = engine
+                    if (cleared || attempt != request) { engine.close(); detector = null; return@execute }
                     startNs = SystemClock.elapsedRealtimeNanos()
                     lastResultMs = 0L
-                    session = LiveSession(UUID.randomUUID().toString(), engine.contract.modelVersion,
-                        engine.contract.labels, engine.contract.config)
+                    val id = UUID.randomUUID().toString()
+                    val config = engine.contract.config.copy(
+                        version = engine.contract.config.version + if (sampleOptIn) 1 else 0,
+                        samplingEnabled = sampleOptIn, sampleBudgetBytes = if (sampleOptIn) 10_000_000 else 0,
+                        sampleIntervalMs = if (sampleOptIn) 1000 else engine.contract.config.sampleIntervalMs)
+                    val writer = RoomEvidenceStore.writer(app, SessionHeader(id, System.currentTimeMillis(),
+                        appVersion, engine.contract.modelVersion, engine.contract.labels, config,
+                        manifest, engine.backend, "${Build.MODEL} / Android ${Build.VERSION.RELEASE}"))
+                    evidence = writer
+                    sampler = RoomEvidenceStore.sampler(app, writer)
+                    session = LiveSession(id, engine.contract.modelVersion,
+                        engine.contract.labels, config) { writer.offer(it) }
                     metrics = PipelineMetrics()
                     processor = LatestFrameProcessor(inferenceWorker, ::process) { fail("Inference failed. Stop and restart; reinstall the validated bundle if it repeats.") }
                     mutableUi.value = mutableUi.value.copy(phase = Phase.ACTIVE,
                         message = "Opening camera...", restriction = session!!.state,
-                        metadata = "CPU | app 0.1.0 | model ${engine.contract.modelVersion}\n" +
-                            "labels v${engine.contract.labels.version} ${engine.contract.labels.sha256.take(12)} | config v${engine.contract.config.version}\n" +
+                        metadata = "CPU | app $appVersion | model ${engine.contract.modelVersion}\n" +
+                            "labels v${engine.contract.labels.version} ${engine.contract.labels.sha256.take(12)} | effective config v${config.version}\n" +
                             "input ${engine.contract.input.shape[2]}x${engine.contract.input.shape[1]} | warm-up [0, 5000) ms\n" +
                             "device ${Build.MODEL} | Android ${Build.VERSION.RELEASE} / API ${Build.VERSION.SDK_INT}")
                 }
@@ -138,6 +174,11 @@ class HudViewModel(application: Application) : AndroidViewModel(application) {
             val live = session ?: return
             val now = elapsedMs()
             if (!live.result(frame.token, frame.id, frame.captureMs, now, detections)) return
+            sampler?.offer(frame.captureMs) {
+                SampleFrame(Observation(1, live.id, frame.token.generation, frame.id, frame.captureMs,
+                    live.model, live.labels.sha256, detections.toList()), live.config, live.state.sequence,
+                    frame.rgb.copyOf(), frame.width, frame.height, frame.rotation)
+            }
             lastResultMs = now
             metrics.record(now, inferenceMs, (now - frame.captureMs).coerceAtLeast(0).toDouble())
             val rotated = frame.rotation % 180 != 0
@@ -150,15 +191,20 @@ class HudViewModel(application: Application) : AndroidViewModel(application) {
     private fun publish(now: Long) {
         val power = getApplication<Application>().getSystemService(PowerManager::class.java)
         mutableUi.value = mutableUi.value.copy(restriction = session?.state, nowMs = now,
+            evidence = evidence?.snapshot(),
+            samples = sampler?.snapshot(),
+            confirmation = if (mutableUi.value.diagnostics) session?.confirmationDebug else null,
             stats = metrics.snapshot(now, processor?.dropped ?: 0),
             thermal = if (Build.VERSION.SDK_INT >= 29) power.currentThermalStatus else -1)
     }
     fun reset() = synchronized(lock) {
         session?.reset(elapsedMs())
-        mutableUi.value = mutableUi.value.copy(restriction = session?.state, candidates = null)
+        mutableUi.value = mutableUi.value.copy(restriction = session?.state, candidates = null,
+            confirmation = if (mutableUi.value.diagnostics) session?.confirmationDebug else null)
     }
     fun fail(message: String) {
         android.util.Log.w("HudSession", message)
+        synchronized(lock) { session?.error(elapsedMs(), "recognition_failure", message) }
         stop(message, true)
     }
     fun stop(message: String = "Stopped. Press Start for a new session.", error: Boolean = false) = synchronized(lock) {
@@ -168,15 +214,27 @@ class HudViewModel(application: Application) : AndroidViewModel(application) {
             return
         }
         ++request
+        val writer = evidence
+        val images = sampler
+        val endedAt = System.currentTimeMillis()
+        session?.tick(elapsedMs())
         session?.stop(); session = null
         processor?.close(); processor = null
         mutableUi.value = mutableUi.value.copy(phase = Phase.STOPPING, restriction = null,
-            candidates = null, message = message)
+            candidates = null, confirmation = null, message = message)
         inferenceWorker.execute {
             detector?.close(); detector = null
-            synchronized(lock) {
-                mutableUi.value = mutableUi.value.copy(phase = if (error) Phase.ERROR else Phase.READY)
+            fun complete() = synchronized(lock) {
+                evidence = null; sampler = null
+                mutableUi.value = mutableUi.value.copy(phase = if (error) Phase.ERROR else Phase.READY,
+                    evidence = writer?.snapshot(), samples = images?.snapshot(), samplingEnabled = false)
             }
+            fun finishEvents() {
+                val saved = writer?.finish(message, endedAt, images?.snapshot())
+                if (saved == null) complete() else saved.whenComplete { _, _ -> complete() }
+            }
+            val savedImages = images?.finish()
+            if (savedImages == null) finishEvents() else savedImages.whenComplete { _, _ -> finishEvents() }
         }
     }
     override fun onCleared() {

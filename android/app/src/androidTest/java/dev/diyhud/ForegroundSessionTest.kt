@@ -56,6 +56,11 @@ class ForegroundSessionTest {
                 assertNull(model.ui.value.restriction!!.speed.current)
                 if (index == 1) {
                     assertNotNull(model.ui.value.candidates)
+                    assertNotNull(model.ui.value.confirmation)
+                    assertEquals(model.ui.value.restriction!!.config.confirmationWindowMs,
+                        model.ui.value.confirmation!!.windowMs)
+                    assertEquals(model.ui.value.restriction!!.config.confidenceThreshold,
+                        model.ui.value.confirmation!!.confidence, .00001)
                     assertTrue(model.ui.value.metadata.contains("capture clock:"))
                     await("Preview alignment probe must run") { model.ui.value.alignmentErrorPx != null }
                     assertTrue("Preview must align within 2 pixels: ${model.ui.value.alignmentErrorPx}", model.ui.value.alignmentErrorPx!! <= 2.0)
@@ -76,6 +81,13 @@ class ForegroundSessionTest {
                     await("Stop must close runtime") { model.ui.value.phase == Phase.READY }
                 }
                 assertNull(model.ui.value.restriction)
+                assertNull(model.ui.value.confirmation)
+                assertNotNull(model.ui.value.evidence)
+                assertFalse("Normal trip should retain complete evidence", model.ui.value.evidence!!.incomplete)
+                assertTrue(model.ui.value.evidence!!.stored > 0)
+                val saved = dev.diyhud.data.RoomEvidenceStore.get(instrumentation.targetContext).replay(token.sessionId)
+                assertTrue(saved.complete)
+                assertEquals(token.sessionId, saved.finalState.sessionId)
             }
             activity.onActivity { model.start() }
             await("Restart must produce frames") { model.ui.value.stats.frames >= 2 }

@@ -162,8 +162,9 @@ separate camera executor copies frames, and the app retains only one in-flight
 frame plus the newest pending copy. A short synchronized section orders domain
 events and publishes immutable StateFlow snapshots; native inference never holds
 that lock. Explicit 250 ms ticks expire state even when detections are empty.
-`StateFlow` carries the latest screen state; durable event storage follows in
-OpenSpec block 7. Images and trip events are not saved by this block.
+`StateFlow` carries the latest screen state. Since app 0.1.1, a separate bounded
+writer persists trip events in Room; see Local event journal below. Since 0.1.2,
+individual images can be saved by explicit pre-session opt-in. Video is not recorded.
 
 ### Camera verification
 
@@ -205,3 +206,137 @@ is insufficient if Wi-Fi remains enabled. Verify `adb shell dumpsys connectivity
 reports no active default network before testing, and restore the phone's prior
 network and sleep settings afterward. Use an unlocked, awake phone for the test.
 Device findings and remaining acceptance work: `../docs/CAMERA_HUD_RESULTS.md`.
+
+### Confirmation diagnostics and the Pixel 6a experiment
+
+In Diagnostics, each candidate shows a track ID, associated hits (`1/3`, `2/3`),
+last-seen age and reason. Reasons distinguish a new candidate, no matching box
+at the configured IoU, old hits leaving the time window, a missed detection,
+low confirmation confidence and an already-confirmed encounter. The overlay also
+shows hit progress. The list contains at most six rows from the latest analyzed
+frame; its age is visible, and updates do not add hits or change reducer inputs.
+Reset clears progress. Already-confirmed signs remain deduplicated until absence
+rearms them; a diagnostic hit count alone is not a new restriction event.
+
+The baseline bundle remains unchanged (config v1, 3 hits / 1000 ms). The installed
+experimental comparison uses **config v2, 3 hits / 3000 ms**, with identical model
+weights, confidence 0.25, association IoU 0.5 and 2000 ms absence rearm. At capture
+times 0, 700 and 1400 ms the baseline fails to confirm; the experimental config
+confirms and replays to the same 30 km/h state. Missed detections and box movement
+can still prevent confirmation. A wider window can accumulate false detections
+for longer; this profile has not passed outdoor calibration or final acceptance.
+
+Generate the variant once from the repo root (existing output is never replaced):
+
+```powershell
+.\ml\.venv\Scripts\python.exe ml/export/confirmation_variant.py --source ml/runs/trained-bundle-v2 --destination ml/runs/trained-bundle-v2-confirmation-v2 --window-ms 3000 --config-version 2
+```
+
+Then build from `android/` with the explicit variant path:
+
+```powershell
+.\gradlew.bat :app:assembleDebug '-PmodelBundleDir=C:/Users/9787/IdeaProjects/hud/ml/runs/trained-bundle-v2-confirmation-v2'
+```
+
+Change the absolute path for your checkout. Install the resulting APK as usual.
+Diagnostics must display **config v2** and **Confirmation window 3000 ms**. The
+script validates the source, preserves weights and tensor parity, records variant
+provenance and refreshes the manifest checksum in the preprocessing profile. It
+does not retrain or claim confirmation-quality parity. To compare/roll back, build
+without the property to use the original baseline; every new session starts unknown.
+
+## Local event journal (0.1.1)
+
+Each valid started session records its ID, wall-clock start/end, end reason,
+app/model/backend/device, generated labels, original model manifest and complete
+effective config. Ordered events contain confirmed batches (including source
+frame IDs, boxes and confidence), ticks, resets, errors, conflicts and transitions.
+Transition/conflict rows link to the input sequence and include the resulting
+state. Raw per-frame candidates are currently visible in Diagnostics only.
+
+The HUD shows **Local events saved: stored/attempted**. If the writer queue fills
+or disk writing fails, **Evidence incomplete** shows losses and the failure.
+Recognition continues; no modal acknowledgement is required. Stop closes the
+camera and drains the writer in the background before Start becomes available.
+
+Bundle defaults declare **256 pending events** and **100 MB** local storage.
+The budget includes database/WAL/SHM and reserves 128 KiB for SQLite overhead and
+the final footer. Old records are never silently deleted. Overflow drops new
+events, records their count and leaves explicit sequence gaps; a gap marker is
+written when the queue drains, including a trailing dropped interval. A failed
+writer stops accepting new records for that session, without per-event retries.
+
+The database is app-private `databases/hud-evidence.db` (Room 2.8.5, KSP
+2.2.21-2.0.5). Its versioned schema is stored under `app/schemas/`; no
+destructive fallback is enabled. Interrupted sessions retain committed events,
+have an unknown true end time and are marked interrupted on the next process
+startup. Their estimates never resume. The paginated replay runner reports gaps,
+unknown tails and interruption as incomplete evidence.
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest '-PmodelBundleDir=C:/Users/9787/IdeaProjects/hud/ml/runs/trained-bundle-v2-confirmation-v2'
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+adb shell am instrument -w -e class dev.diyhud.EvidenceStorageTest,dev.diyhud.ForegroundSessionTest dev.diyhud.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+Unlock the device for the camera tests. The storage-only class also runs while
+locked. `EvidenceWriterTest` simulates blocked disk, queue overflow, missing Reset,
+budget exhaustion, database-open failure and worker rejection. Storage tests
+verify all event kinds/source links, exact replay, SQLite close/reopen, explicit
+incompleteness and retention when a budget is reached.
+
+Opt-in sampling and partial-image cleanup are available since 0.1.2. The
+review/export/delete screens remain later tasks; there is no automatic upload.
+Detailed evidence: `../docs/EVIDENCE_STORAGE_RESULTS.md`.
+
+## Optional sample images (0.1.2)
+
+Before **Start**, enable **Save sample images** if you want local frames for
+later inspection/annotation. It defaults to off and returns to off after each
+session; it cannot be changed during recognition. Select Diagnostics separately
+if you also want preview/confirmation progress. Sampling does not require preview.
+
+The app selects at most **one analyzed frame per second**, including frames with
+no detected signs, and saves at most **10,000,000 JPEG bytes per session**. The
+panel shows image count/bytes and stopped/failed status. A frame arriving too soon
+is skipped; when the next complete JPEG cannot fit, sampling stops for the session.
+Recognition and structured event recording continue. Global evidence storage
+budget still applies and may stop writes earlier. A slow encoder retains only
+one current and one pending copied frame; additional eligible frames are counted
+as dropped. There is no unbounded encoding/retry queue.
+
+Images are upright JPEG (quality 85), without HUD overlays, in app-private
+`files/evidence-samples/`. Each completed file has a Room row with SHA-256, byte
+count, session/reset-generation/frame identity, monotonic capture time, the
+source state-event sequence, full observation (model/labels/detections), full
+effective config, and **unreviewed = true**. Event loss can make its source
+sequence absent; the self-contained observation remains available and the event
+trace is incomplete. Automatic predictions, including an empty detection list,
+are not training labels. Nothing is automatically imported into ML datasets.
+
+The model manifest remains the validated source bundle. Per-session effective
+config records the explicit sampling choice, 1000 ms interval and 10 MB budget;
+opt-in increments its config version. Use the full config snapshot for replay,
+not the version number alone. With the current experimental bundle the temporal
+settings remain 3 hits / 3000 ms, confidence 0.25 and IoU 0.5, whether sampling is
+on or off. Selected image observations are not an exhaustive detector trace.
+
+Stop drains selected image work before the event footer is finalized. Saving
+uses `.jpg.partial` files, then rename and metadata insertion; only committed
+rows advertise completed samples. Startup marks open sessions interrupted and
+removes managed partial/uncommitted files, retaining committed images/events.
+Recognition and sampling never resume automatically after interruption. Room
+schema v2 adds samples/status through the tested 1→2 migration without deleting
+v1 sessions or events. Schemas 1 and 2 live under `app/schemas/`.
+
+For device checks after building/installing both APKs:
+
+```powershell
+adb shell am instrument -w -e class dev.diyhud.SampleStorageTest,dev.diyhud.SampleSessionTest,dev.diyhud.EvidenceStorageTest,dev.diyhud.ForegroundSessionTest dev.diyhud.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+The camera tests require an unlocked phone. Sampling tests use synthetic RGB
+fixtures; they cover encoding, source links, byte/rate limits, migration,
+interrupted-file recovery, explicit activation and the next trip defaulting off.
+Viewing/exporting/deleting trips and selected images will be added in block 8.

@@ -18,12 +18,21 @@ class LiveSession(
     var state = RestrictionState(id, model, labels.sha256, config)
         private set
     fun token() = FrameToken(id, state.generation)
+    val confirmationDebug get() = confirmation.diagnostics
     fun accepts(token: FrameToken) = active && token == token()
     private fun emit(time: Long, payload: Payload, generation: Long = state.generation) {
         val event = DomainEvent(1, id, generation, sequence++, time.coerceAtLeast(state.offsetMs),
             model, labels.sha256, config, payload)
         state = reducer.reduce(state, event)
         onEvent(event)
+        if (payload !is Payload.Transition && payload !is Payload.Conflict) {
+            for (reason in state.reasons.toList()) {
+                val details = EventCodec.state(state)
+                val audit = if (reason.endsWith("_conflict")) Payload.Conflict(reason, listOf(event.sequence), details)
+                    else Payload.Transition(reason, listOf(event.sequence), details)
+                emit(time, audit)
+            }
+        }
     }
     fun result(token: FrameToken, frameId: Long, captureMs: Long,
                availableMs: Long, detections: List<Detection>): Boolean {
@@ -35,6 +44,10 @@ class LiveSession(
         return true
     }
     fun tick(now: Long) { if (active) emit(now, Payload.Tick) }
+    fun error(now: Long, reason: String, details: String) {
+        if (active) emit(now, Payload.Error(reason,
+            state.sequence.takeIf { it >= 0 }?.let { listOf(it) } ?: emptyList(), details))
+    }
     fun reset(now: Long) {
         if (!active) return
         val next = state.generation + 1

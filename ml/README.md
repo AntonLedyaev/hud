@@ -1,4 +1,4 @@
-# ml/ — model training & export
+g# ml/ — model training & export
 
 Python subproject: dataset preparation, YOLO training, evaluation, export.
 

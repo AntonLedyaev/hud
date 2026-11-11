@@ -3,6 +3,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
     id("org.jetbrains.kotlin.plugin.serialization")
+    id("com.google.devtools.ksp")
 }
 
 android {
@@ -13,8 +14,8 @@ android {
         applicationId = "dev.diyhud"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = 3
+        versionName = "0.1.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true }
@@ -43,14 +44,20 @@ dependencies {
     implementation("androidx.camera:camera-camera2:1.5.1")
     implementation("androidx.camera:camera-lifecycle:1.5.1")
     implementation("androidx.camera:camera-view:1.5.1")
+    implementation("androidx.room:room-runtime:2.8.5")
+    ksp("androidx.room:room-compiler:2.8.5")
     testImplementation("junit:junit:4.13.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("androidx.room:room-testing:2.8.5")
     androidTestImplementation("com.google.ai.edge.litert:litert-gpu:1.4.0")
     androidTestImplementation("com.google.ai.edge.litert:litert-gpu-api:1.4.0")
     implementation("com.google.ai.edge.litert:litert:1.4.0")
 }
+
+ksp { arg("room.schemaLocation", "$projectDir/schemas") }
+android.sourceSets.getByName("androidTest").assets.srcDir("schemas")
 
 // Experimental weights exist only in the test APK, never in the application.
 val experimentAssets = layout.buildDirectory.dir("generated/experimentAssets")

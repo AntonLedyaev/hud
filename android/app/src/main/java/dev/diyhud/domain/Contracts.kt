@@ -126,4 +126,5 @@ object EventCodec {
     fun decode(value: String): DomainEvent = json.decodeFromString(value)
     fun observation(value: String): Observation = json.decodeFromString(value)
     fun labels(value: String): CanonicalLabels = json.decodeFromString(value)
+    fun state(value: RestrictionState): String = json.encodeToString(value)
 }
