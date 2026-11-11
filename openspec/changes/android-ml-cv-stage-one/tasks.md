@@ -22,27 +22,27 @@ Follow groups in dependency order. Pure contract/domain and dataset work can pro
 
 ## 3. Pure Kotlin confirmation and restriction state
 
-- [ ] 3.1 Implement immutable domain observations, confirmed batches, state, actions and explicit clock ticks using the shared contracts; verify event serialization preserves ordering, source identity and configuration snapshots through a round trip.
-- [ ] 3.2 Implement confidence filtering, bounded spatial association, distinct-frame confirmation and absence-based rearming; verify single-frame noise, duplicate frames, persistent signs and a later new encounter against the temporal-confirmation scenarios.
-- [ ] 3.3 Implement speed and overtaking transitions plus transient STOP; verify replacement, matching/nonmatching end-of-80, end-of-all, independent overtaking cancellation and STOP expiry without changing unrelated fields.
-- [ ] 3.4 Implement conflict handling, age/staleness, reset generations and session isolation; verify simultaneous conflicting signs become unknown, empty frames retain unexpired state, expiry advances without detections, and late/pre-reset/out-of-order results cannot restore an estimate.
-- [ ] 3.5 Add deterministic event replay and domain documentation; verify the same event stream/config produces identical states and reasons on repeated runs and demonstrate an explicit debug replay without camera or model access.
+- [x] 3.1 Implement immutable domain observations, confirmed batches, state, actions and explicit clock ticks using the shared contracts; verify event serialization preserves ordering, source identity and configuration snapshots through a round trip.
+- [x] 3.2 Implement confidence filtering, bounded spatial association, distinct-frame confirmation and absence-based rearming; verify single-frame noise, duplicate frames, persistent signs and a later new encounter against the temporal-confirmation scenarios.
+- [x] 3.3 Implement speed and overtaking transitions plus transient STOP; verify replacement, matching/nonmatching end-of-80, end-of-all, independent overtaking cancellation and STOP expiry without changing unrelated fields.
+- [x] 3.4 Implement conflict handling, age/staleness, reset generations and session isolation; verify simultaneous conflicting signs become unknown, empty frames retain unexpired state, expiry advances without detections, and late/pre-reset/out-of-order results cannot restore an estimate.
+- [x] 3.5 Add deterministic event replay and domain documentation; verify the same event stream/config produces identical states and reasons on repeated runs and demonstrate an explicit debug replay without camera or model access.
 
 ## 4. Detection datasets and trained baseline
 
-- [ ] 4.1 Audit the proposed detection sources for access, provenance, license references and coverage of the canonical twelve classes; deliver a per-source/class coverage report identifying missing annotations and excluding unmapped labels or classification-only crops from scene detection training.
-- [ ] 4.2 Implement reproducible source conversion, box validation and split manifests under `ml/datasets/`; verify fixture conversions, sequence-level split isolation, negative-scene inclusion and actionable rejection of invalid boxes or cross-split leakage.
-- [ ] 4.3 Implement the YOLO training entry point/config under `ml/training/` with seed, input/checkpoint hashes and tool versions; verify a short run on prepared sign data uses generated class mappings and produces a reproducible run manifest before starting full training.
-- [ ] 4.4 Train and compare the bounded baseline experiments selected after the export check; deliver validation reports by class and sign size, record the chosen checkpoint/resolution and retain explicit coverage failures rather than claiming all-class success from an aggregate score.
-- [ ] 4.5 Implement detection evaluation and document preparation/training/evaluation commands; verify metric aggregation on controlled fixtures, include mAP/precision/recall/confusion/sample counts and negative scenes, and separate printed daylight results from LED/night/rain conditions. Reserve the final test split for group 9.
+- [x] 4.1 Audit the proposed detection sources for access, provenance, license references and coverage of the canonical twelve classes; deliver a per-source/class coverage report identifying missing annotations and excluding unmapped labels or classification-only crops from scene detection training.
+- [x] 4.2 Implement reproducible source conversion, box validation and split manifests under `ml/datasets/`; verify fixture conversions, sequence-level split isolation, negative-scene inclusion and actionable rejection of invalid boxes or cross-split leakage.
+- [x] 4.3 Implement the YOLO training entry point/config under `ml/training/` with seed, input/checkpoint hashes and tool versions; verify a short run on the approved provisional GTSDB 600/300 split uses generated class mappings, records unknown sequence provenance and produces a reproducible run manifest before baseline comparison.
+- [x] 4.4 Train and compare the bounded baseline experiments selected after the export check; deliver validation reports by class and sign size, record the chosen checkpoint/resolution and retain explicit coverage failures rather than claiming all-class success from an aggregate score.
+- [x] 4.5 Implement detection evaluation and document preparation/training/evaluation commands; verify metric aggregation on controlled fixtures, include mAP/precision/recall/confusion/sample counts and negative scenes, and separate printed daylight results from LED/night/rain conditions. Reserve the final test split for group 9.
 
 ## 5. Production model bundle and inference adapter
 
-- [ ] 5.1 Package the selected trained model with generated labels, checksums, effective preprocessing/postprocessing and provenance; verify the bundle validator accepts the valid pair and rejects altered weights, labels, unsupported contracts and tensor metadata mismatches.
-- [ ] 5.2 Implement Android bundle loading and the CPU LiteRT detector adapter with explicit buffer/runtime ownership; verify fixtures cover channel order, normalization, quantization, score decoding and exactly-once NMS, plus recoverable initialization and fatal inference errors.
-- [ ] 5.3 Implement preprocessing and inverse geometry mapping to normalized upright source coordinates; verify rotated, padded, cropped and differently scaled fixtures recover the reference boxes within declared tolerances.
-- [ ] 5.4 Run source-to-Android parity on the trained bundle and evaluate optional GPU execution with validated CPU fallback; deliver backend-specific reports and verify unsupported acceleration is reported, fallback works and no unvalidated backend is promoted for a road trial.
-- [ ] 5.5 Integrate checksum-verified local model staging into the build and document bundle replacement/rollback; verify a fresh installed build loads its bundled runtime/model offline, an incompatible model disables recognition clearly, and reverting to a validated pair starts a new unknown-state session.
+- [x] 5.1 Package the selected trained model with generated labels, checksums, effective preprocessing/postprocessing and provenance; verify the bundle validator accepts the valid pair and rejects altered weights, labels, unsupported contracts and tensor metadata mismatches.
+- [x] 5.2 Implement Android bundle loading and the CPU LiteRT detector adapter with explicit buffer/runtime ownership; verify fixtures cover channel order, normalization, quantization, score decoding and exactly-once NMS, plus recoverable initialization and fatal inference errors.
+- [x] 5.3 Implement preprocessing and inverse geometry mapping to normalized upright source coordinates; verify rotated, padded, cropped and differently scaled fixtures recover the reference boxes within declared tolerances.
+- [x] 5.4 Run source-to-Android parity on the trained bundle and evaluate optional GPU execution with validated CPU fallback; deliver backend-specific reports and verify unsupported acceleration is reported, fallback works and no unvalidated backend is promoted for a road trial.
+- [x] 5.5 Integrate checksum-verified local model staging into the build and document bundle replacement/rollback; verify a fresh installed build loads its bundled runtime/model offline, an incompatible model disables recognition clearly, and reverting to a validated pair starts a new unknown-state session.
 
 ## 6. Camera pipeline and driving interface
 

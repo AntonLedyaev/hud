@@ -1,6 +1,7 @@
 # --- Datasets & model artifacts (never commit) ---
 ml/data/
 ml/runs/
+/runs/
 *.pt
 *.onnx
 *.tflite

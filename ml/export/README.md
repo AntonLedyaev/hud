@@ -36,3 +36,30 @@ The application's current shell does not load this untrained model automatically
 Verified locally: ONNX maximum absolute tensor error 3.0517578125e-5; TFLite
 maximum absolute tensor error 2.288818359375e-5 against the source fixture.
 The Android CPU harness also passed on the reference Pixel after a clean build.
+
+## Trained baseline bundle
+
+From the repository root, with the selected trained checkpoint available:
+
+```powershell
+uv sync --project ml/export --locked
+uv run --project ml/export python ml/export/bundle.py --checkpoint ml/runs/gtsdb-baseline-640-v2/weights/best.pt --output ml/runs/trained-bundle-v2
+```
+
+Use a new output directory when it already exists. This export uses fixed
+validation scenes 00605/00611/00613, explicit nearest pixel-center letterboxing,
+ONNX opset 17 and FP32 conversion. `parity.json` must report passed. Neither this
+corpus nor the earlier untrained test is final independent evaluation.
+
+To regenerate only parity fixtures for the same model/checkpoint hashes:
+
+```powershell
+uv run --project ml/export python ml/export/refresh_fixtures.py --bundle ml/runs/trained-bundle-v2
+```
+
+Android builds stage only the manifest, model, preprocessing profile and parity
+report; source frames/checkpoints are excluded from the application APK. Its
+staging validator runs in the training Python environment and rejects mismatched
+weights/labels/profile or a failed parity report. Unsupported contracts fail
+explicitly rather than being silently converted in the Android loader.
+See `../../docs/TRAINED_EXPORT_RESULTS.md` for CPU parity and GPU probe findings.

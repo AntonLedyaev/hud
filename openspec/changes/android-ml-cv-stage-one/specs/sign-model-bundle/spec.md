@@ -16,7 +16,7 @@ All training and runtime class mappings SHALL be derived from `shared/labels.yam
 - **THEN** the report marks it uncovered and the bundle cannot pass full Stage 1 acceptance
 
 ### Requirement: Reproducible data preparation
-Dataset preparation SHALL record source, access/license reference, dataset version, class mapping, exclusions, annotation format and split membership. Related frames from a drive or sequence MUST remain in one split; test data MUST NOT select thresholds or tune training.
+Dataset preparation SHALL record source, access/license reference, version, mapping, exclusions and split membership. Related frames MUST remain in one split. The approved GTSDB baseline MAY use official 600/300 train/validation splits with unknown sequence provenance and provisional metrics; it MUST NOT establish final acceptance. Independent-drive test data MUST NOT tune training or thresholds.
 
 #### Scenario: Unmapped or classification-only data
 - **WHEN** a source label has no canonical mapping or an image has no detection boxes
@@ -25,6 +25,10 @@ Dataset preparation SHALL record source, access/license reference, dataset versi
 #### Scenario: Sequence leakage
 - **WHEN** related frames occur in both training and test splits
 - **THEN** dataset validation fails and identifies the conflicting sequence
+
+#### Scenario: Provisional GTSDB baseline
+- **WHEN** the explicitly selected official GTSDB 600/300 policy is used
+- **THEN** 00000–00599 are training, 00600–00899 are provisional validation, unknown sequence membership is recorded honestly, and final independent-drive evaluation remains required
 
 ### Requirement: Complete inference contract
 The bundle SHALL include model checksum/version, provenance, input shape/type, channel order, normalization, resize/padding and rotation policy, quantization parameters, output layout, box coordinates, score decoding, NMS ownership and thresholds. Unsupported contracts MUST be rejected explicitly.

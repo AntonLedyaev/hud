@@ -2,6 +2,7 @@ plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("org.jetbrains.kotlin.plugin.compose")
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
@@ -17,6 +18,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     buildFeatures { compose = true }
+    testOptions.unitTests.all {
+        it.systemProperty("hud.repoRoot", rootProject.projectDir.parentFile.absolutePath)
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -33,10 +37,14 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("androidx.compose.ui:ui")
     implementation("androidx.compose.ui:ui-tooling-preview")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.9.0")
+    testImplementation("junit:junit:4.13.2")
     debugImplementation("androidx.compose.ui:ui-tooling")
     androidTestImplementation("androidx.test:runner:1.6.2")
     androidTestImplementation("androidx.test.ext:junit:1.2.1")
-    androidTestImplementation("com.google.ai.edge.litert:litert:1.4.0")
+    androidTestImplementation("com.google.ai.edge.litert:litert-gpu:1.4.0")
+    androidTestImplementation("com.google.ai.edge.litert:litert-gpu-api:1.4.0")
+    implementation("com.google.ai.edge.litert:litert:1.4.0")
 }
 
 // Experimental weights exist only in the test APK, never in the application.
@@ -74,3 +82,49 @@ android.sourceSets.getByName("androidTest").assets.srcDir(experimentAssets)
 tasks.matching { "AndroidTest" in it.name }.configureEach {
     dependsOn(stageExperiment)
 }
+
+val generateCanonicalLabels by tasks.registering(Exec::class) {
+    val repository = rootProject.projectDir.parentFile
+    val windows = System.getProperty("os.name").startsWith("Windows")
+    val python = providers.gradleProperty("labelsPython").getOrElse(
+        repository.resolve(if (windows) "ml/.venv/Scripts/python.exe" else "ml/.venv/bin/python").path
+    )
+    inputs.files(repository.resolve("shared/labels.yaml"), repository.resolve("shared/contracts.py"))
+    outputs.file(layout.buildDirectory.file("generated/canonical/labels.json"))
+    commandLine(python, repository.resolve("shared/contracts.py"), "--generate-labels",
+        layout.buildDirectory.file("generated/canonical/labels.json").get().asFile)
+}
+tasks.matching { it.name.startsWith("test") && it.name.endsWith("UnitTest") }.configureEach {
+    dependsOn(generateCanonicalLabels)
+}
+
+val trainedBundleAssets = layout.buildDirectory.dir("generated/trainedBundleAssets")
+val stageTrainedBundle by tasks.registering(Exec::class) {
+    val repository = rootProject.projectDir.parentFile
+    val source = providers.gradleProperty("modelBundleDir")
+        .getOrElse(repository.resolve("ml/runs/trained-bundle-v2").path)
+    val python = providers.gradleProperty("labelsPython").getOrElse(
+        repository.resolve(if (System.getProperty("os.name").startsWith("Windows"))
+            "ml/.venv/Scripts/python.exe" else "ml/.venv/bin/python").path)
+    // Always validate before copying: a locally changed artifact cannot hide behind a cached task.
+    commandLine(python, repository.resolve("ml/export/stage_bundle.py"), "--source", source,
+        "--destination", trainedBundleAssets.get().dir("model").asFile)
+}
+android.sourceSets.getByName("main").assets.srcDir(trainedBundleAssets)
+android.sourceSets.getByName("main").assets.srcDir(layout.buildDirectory.dir("generated/canonical"))
+tasks.matching { it.name == "preBuild" }.configureEach {
+    dependsOn(generateCanonicalLabels)
+}
+tasks.matching {
+    (it.name.startsWith("merge") && it.name.endsWith("Assets") && "AndroidTest" !in it.name) ||
+        (it.name.startsWith("generate") && "Lint" in it.name && it.name.endsWith("Model"))
+}.configureEach {
+    dependsOn(stageTrainedBundle)
+}
+val trainedFixtureAssets = layout.buildDirectory.dir("generated/trainedFixtureAssets")
+val stageTrainedFixtures by tasks.registering(Copy::class) {
+    from(rootProject.projectDir.parentFile.resolve("ml/runs/trained-bundle-v2/fixtures"))
+    into(trainedFixtureAssets.map { it.dir("trained") })
+}
+android.sourceSets.getByName("androidTest").assets.srcDir(trainedFixtureAssets)
+tasks.matching { "AndroidTest" in it.name }.configureEach { dependsOn(stageTrainedFixtures) }

@@ -36,7 +36,7 @@ Future implementation affects `android/`, `ml/` and derived artifacts from `shar
 
 1. Freeze the v1 label/bundle and timestamped observation contracts. Select a reference phone and predeclare recognition and sustained-performance acceptance thresholds before final evaluation.
 2. Establish a buildable Android shell and deterministic observation replay. Verify state transitions and HUD unknown/error behavior using fixtures explicitly separated from real recognition.
-3. Audit dataset coverage for all twelve classes, prepare leakage-free splits, train the selected baseline and validate its export against the source model. Missing data coverage is a gate, not a reason to claim full MVP completion.
+3. Audit all twelve classes, prepare the approved provisional GTSDB 600/300 train/validation split, train the baseline and validate export. Sequence provenance is unknown for this baseline; its metrics do not establish final acceptance. Keep independent-drive evaluation for final gates. Missing class coverage still prevents full MVP completion.
 4. Integrate foreground camera inference and HUD; verify geometry, frame dropping, lifecycle cleanup, CPU fallback and offline startup.
 5. Add local trip evidence, bounded opt-in samples, export/deletion and interrupted-session recovery. Validate ordering and provenance by replaying exported events.
 6. Run a sustained device benchmark and evaluate held-out annotated drives. Report per-class recognition, false state changes per hour, confirmation delay, state agreement on supported explicit-sign intervals and unknown/stale time. Keep unsupported conditions separate. Do not equate a successful build or an emulator demo with road-trial acceptance.

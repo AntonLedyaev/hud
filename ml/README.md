@@ -69,3 +69,54 @@ comparison against PyTorch: observed maximum absolute errors were approximately
 3.05e-5 and 2.29e-5 respectively. The corresponding Android CPU parity test also
 passed on Pixel 6a; reproduce it from `android/README.md`. Neither the COCO smoke
 checkpoint nor the untrained twelve-class checkpoint is a usable road-sign model.
+
+## Road-scene data
+
+See `datasets/README.md` for downloading GTSDB, reproducing the class audit and
+converting scenes with explicit reviewed sequence/split assignments. The full
+900-scene archive is available locally under ignored `data/gtsdb-source/`.
+Source access, class counts, rare classes and the missing sequence metadata are
+documented in `datasets/SOURCE_AUDIT.md`. No real road-sign training run has been
+claimed by the audit itself. The developer subsequently approved the provisional
+official 600/300 train/validation policy; final independent evaluation remains required.
+
+## Train the GTSDB baseline
+
+From the repository root, after the provisional conversion described above:
+
+```powershell
+ml/.venv/Scripts/python.exe ml/training/train.py --dataset ml/data/gtsdb-official-v1 --epochs 2 --imgsz 320 --name gtsdb-smoke-320
+```
+
+The default config is `training/baseline.yaml` (YOLO11n, seed 0, CUDA, zero Windows
+DataLoader workers). The initial `ml/yolo11n.pt` checkpoint must exist, as established
+by the environment smoke test. Class names/count come from the canonical labels.
+The entry point verifies all prepared input hashes and class mappings before GPU
+work, refuses run-directory reuse and records effective config, tools, checkpoint/
+input hashes, split policy and coverage in `runs/NAME/run-manifest.json`.
+Training failures remain marked failed; missing class coverage is recorded per split.
+
+The initial comparison uses 10 epochs each at 320 and 640 with the same pretrained
+YOLO11n, seed and optimizer policy. Horizontal and vertical flips are disabled:
+mirrored digits are not valid speed signs. An earlier interrupted run with default
+flip augmentation is excluded from this comparison.
+
+Evaluate a completed candidate from the repository root:
+
+```powershell
+ml/.venv/Scripts/python.exe ml/training/evaluate.py --dataset ml/data/gtsdb-official-v1 --checkpoint ml/runs/gtsdb-baseline-640-v2/weights/best.pt --imgsz 640 --output ml/runs/gtsdb-baseline-640-v2/evaluation
+ml/.venv/Scripts/python.exe -m pytest ml/training/test_train.py ml/training/test_evaluation.py ml/datasets/test_gtsdb.py shared/tests -q
+```
+
+Use a new output directory per evaluation. Reports contain per-class mAP50–95,
+fixed-threshold precision/recall/TP/FP/FN, sample counts, confusion matrix, negative
+scene counts and recall by original sign area (<32², <96², larger). AP is delegated
+to the pinned Ultralytics validator; controlled tests verify fixed-threshold
+matching and aggregation, including duplicate predictions and negative scenes.
+AP uses the validator's low confidence sweep; the separate operating-point
+statistics use confidence 0.25 and match IoU 0.5. These are experimental thresholds.
+
+GTSDB conditions are unstratified: LED/night/rain metrics are explicitly unavailable
+and are not inferred from aggregate results. The evaluator never opens a final
+test split. Predictions and reports remain in ignored `ml/runs/`; the comparison
+summary records the chosen experimental checkpoint and limitations separately.

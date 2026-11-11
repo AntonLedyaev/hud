@@ -16,8 +16,15 @@ import androidx.compose.material3.darkColorScheme
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.mutableStateOf
+import dev.diyhud.domain.RestrictionState
+import dev.diyhud.inference.LiteRtDetector
+import java.util.UUID
+import java.util.concurrent.Executors
 
 class MainActivity : ComponentActivity() {
+    private val modelStatus = mutableStateOf("Checking local model…")
+    private val modelWorker = Executors.newSingleThreadExecutor()
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -31,11 +38,30 @@ class MainActivity : ComponentActivity() {
                     ) {
                         Text("DIY HUD", style = MaterialTheme.typography.headlineLarge)
                         Text("—", style = MaterialTheme.typography.displayLarge)
-                        Text("Camera recognition is not available yet.")
+                        Text(modelStatus.value)
+                        Text("Camera connection is the next implementation step.")
                         Text("Driver assistant · Always follow road signs.")
                     }
                 }
             }
         }
+        modelWorker.execute {
+            val message = try {
+                LiteRtDetector.open(assets).use { detector ->
+                    val initial = RestrictionState(UUID.randomUUID().toString(), detector.contract.modelVersion,
+                        detector.contract.labels.sha256, detector.contract.config)
+                    check(initial.speed.current == null)
+                    "Experimental model loaded · ${detector.backend}"
+                }
+            } catch (failure: Exception) {
+                "Model unavailable. Reinstall a build with a validated model bundle."
+            }
+            runOnUiThread { if (!isDestroyed) modelStatus.value = message }
+        }
+    }
+
+    override fun onDestroy() {
+        modelWorker.shutdown()
+        super.onDestroy()
     }
 }

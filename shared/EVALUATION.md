@@ -31,3 +31,9 @@ Undefined precision/recall are encoded as zero with their sample counts, not NaN
 The checked-in reference is a synthetic negative scene. Add positive synthetic
 observations/events using the observation/event fixtures for replay tests.
 The checked-in report is an empty-coverage example, not measured performance.
+
+Approved GTSDB exception: official images 00000–00599 form training and
+00600–00899 form provisional validation. Sequence provenance is unknown, not
+verified independent. These 300 images may guide the initial baseline, but their
+metrics cannot satisfy final independent-drive acceptance. No final test split is
+created from these images by the provisional converter.

@@ -1,0 +1,121 @@
+{
+  "source_url": "https://sid.erda.dk/public/archives/ff17dc924eba88d5d01a807357d6614c/",
+  "annotation_sha256": "43e91e93cf8c5d8e2391b6faf81b6e3c7800445f3a872beeff7cbde5f832cc3e",
+  "labels_sha256": "e069dcb4ed2c1efb37a1eb8abaf7a613c171333116cd4883b4b1779efdb027b6",
+  "labels_version": 1,
+  "annotated_scene_count": 741,
+  "annotation_count": 1213,
+  "first_scene": "00000.ppm",
+  "last_scene": "00899.ppm",
+  "per_class": [
+    {
+      "id": 0,
+      "name": "speed_limit_30",
+      "source_id": 1,
+      "instances": 79
+    },
+    {
+      "id": 1,
+      "name": "speed_limit_50",
+      "source_id": 2,
+      "instances": 81
+    },
+    {
+      "id": 2,
+      "name": "speed_limit_60",
+      "source_id": 3,
+      "instances": 30
+    },
+    {
+      "id": 3,
+      "name": "speed_limit_70",
+      "source_id": 4,
+      "instances": 68
+    },
+    {
+      "id": 4,
+      "name": "speed_limit_80",
+      "source_id": 5,
+      "instances": 53
+    },
+    {
+      "id": 5,
+      "name": "speed_limit_100",
+      "source_id": 7,
+      "instances": 41
+    },
+    {
+      "id": 6,
+      "name": "speed_limit_120",
+      "source_id": 8,
+      "instances": 57
+    },
+    {
+      "id": 7,
+      "name": "end_speed_limit_80",
+      "source_id": 6,
+      "instances": 19
+    },
+    {
+      "id": 8,
+      "name": "end_all_restrictions",
+      "source_id": 32,
+      "instances": 8
+    },
+    {
+      "id": 9,
+      "name": "stop",
+      "source_id": 14,
+      "instances": 32
+    },
+    {
+      "id": 10,
+      "name": "no_overtaking",
+      "source_id": 9,
+      "instances": 41
+    },
+    {
+      "id": 11,
+      "name": "end_no_overtaking",
+      "source_id": 41,
+      "instances": 7
+    }
+  ],
+  "excluded_source_class_counts": {
+    "0": 4,
+    "10": 80,
+    "11": 38,
+    "12": 85,
+    "13": 83,
+    "15": 15,
+    "16": 8,
+    "17": 29,
+    "18": 38,
+    "19": 2,
+    "20": 9,
+    "21": 5,
+    "22": 13,
+    "23": 20,
+    "24": 5,
+    "25": 31,
+    "26": 18,
+    "27": 3,
+    "28": 14,
+    "29": 5,
+    "30": 16,
+    "31": 2,
+    "33": 16,
+    "34": 12,
+    "35": 20,
+    "36": 9,
+    "37": 2,
+    "38": 88,
+    "39": 6,
+    "40": 10,
+    "42": 11
+  },
+  "split_coverage": "unknown until reviewed sequence/split manifest is supplied",
+  "full_scene_count": 900,
+  "no_annotated_sign_scenes": 159,
+  "no_target_sign_scenes": 521
+}

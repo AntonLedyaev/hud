@@ -37,7 +37,7 @@ Start with a small YOLO detector that directly predicts the twelve canonical cla
 
 A generic sign detector plus crop classifier remains a possible later experiment if small-sign recall or class confusion warrants it. It introduces two models, two preprocessing contracts and compounded errors, so it is not the initial implementation. Nano versus small, resolution and precision are benchmark variables within the selected YOLO approach. A change to the two-stage approach requires a new explicit decision.
 
-Prepare full-scene detection data from the sources described in the context, but audit access, annotations and class coverage first. Classification-only crops are not treated as full-scene detection examples. Keep split manifests grouped by drive/sequence, include negative scenes, and freeze validation-selected thresholds before testing. Record configuration, seed, source/checkpoint hashes and tool versions per run.
+Prepare full-scene detection data and audit access, annotations and coverage. Classification-only crops are excluded. The developer approved a provisional GTSDB baseline using official 00000–00599 train and 00600–00899 validation images. Record sequence IDs as unknown; do not claim leakage-free grouping for this exception. Enforce known-group and exact-duplicate checks wherever possible. Its metrics are preliminary; final acceptance requires independent drives unseen during training and tuning. Include negative scenes and record configuration, seed, hashes and tool versions. Freeze validation-selected thresholds before final independent evaluation.
 
 ### 3. Versioned model bundle as the ML/Android boundary
 
