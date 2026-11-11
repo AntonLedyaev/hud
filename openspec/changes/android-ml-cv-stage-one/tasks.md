@@ -46,12 +46,12 @@ Follow groups in dependency order. Pure contract/domain and dataset work can pro
 
 ## 6. Camera pipeline and driving interface
 
-- [ ] 6.1 Implement foreground session start/stop, permission handling, model validation and CameraX binding; verify denied/revoked permission, unavailable camera, background/resume and fatal engine errors release resources and require explicit restart with unknown state.
-- [ ] 6.2 Connect CameraX to one inference worker with latest-frame backpressure and session/reset tokens; verify a deliberately slow detector retains at most one pending frame, releases every processed/dropped frame and discards late results after stop, restart or reset.
-- [ ] 6.3 Connect ordered observations and ticks to domain state and immutable UI snapshots; verify live-fixture and replay paths yield identical transitions, expiry runs without detections and inference never blocks UI interactions.
-- [ ] 6.4 Implement the Compose driving view, start/stop/reset actions and actionable availability errors; verify unknown/stale display, km/h labeling, independent overtaking/STOP indicators, no fabricated vehicle speed and no sound/modal acknowledgement on sign changes.
-- [ ] 6.5 Add the pre-session diagnostic mode with mapped boxes, confidence, age and pipeline metrics; verify preview alignment on the reference device, ordinary driving mode hides raw candidates, and reports include FPS, drops, p50/p95 latencies, backend, thermal status, versions and warm-up boundaries.
-- [ ] 6.6 Document and exercise the foreground-session and diagnostics walkthrough in `android/README.md`; record checks for offline cold start, explicit recovery and repeated start/stop without leaked camera or runtime resources.
+- [x] 6.1 Implement foreground session start/stop, permission handling, model validation and CameraX binding; verify denied/revoked permission, unavailable camera, background/resume and fatal engine errors release resources and require explicit restart with unknown state.
+- [x] 6.2 Connect CameraX to one inference worker with latest-frame backpressure and session/reset tokens; verify a deliberately slow detector retains at most one pending frame, releases every processed/dropped frame and discards late results after stop, restart or reset.
+- [x] 6.3 Connect ordered observations and ticks to domain state and immutable UI snapshots; verify live-fixture and replay paths yield identical transitions, expiry runs without detections and inference never blocks UI interactions.
+- [x] 6.4 Implement the Compose driving view, start/stop/reset actions and actionable availability errors; verify unknown/stale display, km/h labeling, independent overtaking/STOP indicators, no fabricated vehicle speed and no sound/modal acknowledgement on sign changes.
+- [x] 6.5 Add the pre-session diagnostic mode with mapped boxes, confidence, age and pipeline metrics; verify preview alignment on the reference device, ordinary driving mode hides raw candidates, and reports include FPS, drops, p50/p95 latencies, backend, thermal status, versions and warm-up boundaries.
+- [x] 6.6 Document and exercise the foreground-session and diagnostics walkthrough in `android/README.md`; record checks for offline cold start, explicit recovery and repeated start/stop without leaked camera or runtime resources.
 
 ## 7. Local evidence and bounded sampling
 

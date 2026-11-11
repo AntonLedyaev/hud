@@ -114,3 +114,94 @@ BCN raw YOLO/class-probability output and consumer NMS; other contracts are reje
 Instrumented tests may uninstall the app on completion. Install the application
 APK again with the command above if it disappears from the launcher. Model weights
 loaded successfully are still experimental; see `../docs/TRAINED_EXPORT_RESULTS.md`.
+
+## Foreground camera and HUD
+
+Open **DIY HUD** on the phone. Select **Diagnostics before Start** while idle if
+you want a preview; otherwise only the driving HUD is shown. Press **Start** and
+allow camera access. Every start validates the bundled model and creates a new
+session with unknown estimates. No network or location permission is requested.
+
+The large number is an **observed speed limit**, in km/h. `—` means unknown;
+expired estimates also show `—` with a stale message. Overtaking and the transient
+STOP observation have independent indicators. No vehicle speed is shown. The
+baseline model is experimental and has documented class-coverage failures.
+
+**Reset** clears estimates and pending confirmation without reopening the camera.
+Results captured before the reset, including work already in flight, cannot
+restore old estimates. **Stop**, leaving the foreground, screen lock and Activity
+recreation close the session. Returning to the app requires **Start** again.
+The screen stays awake only during an active session.
+
+If permission is denied, use **App settings**, allow Camera, return and press
+**Start**. A system/AppOps block is reported separately from bundle validation or
+engine failure. If the camera cannot be selected/opened, close other camera apps
+and check the camera privacy control. Ten seconds without inference results also
+ends the session with an actionable error. Recovery always begins with unknown
+state; the app never substitutes fixture detections.
+
+Diagnostics shows generated class names, raw candidate boxes/confidence, candidate
+age and analyzed FPS. Boxes disappear after 1500 ms. Preview and analysis share a
+CameraX ViewPort; cropped RGBA frames are copied before ImageProxy.close(), rotated
+upright, letterboxed and mapped back to the shared preview. An initial geometry
+probe compares three rectangles against CameraX transforms and reports pixel error.
+Camera resolution requests 1280x960; actual dimensions/crop are supplied by CameraX.
+
+Metrics exclude `[0, 5000)` ms from steady-state latency samples. FPS covers the
+whole steady interval; p50/p95 use the latest **512** samples (nearest rank).
+Inference latency includes rotation, preprocessing, native inference and decoding.
+Capture-to-result includes pending work. REALTIME sensor timestamps use Android's
+elapsed-realtime clock; other cameras use a first-frame anchor and explicitly
+report estimated latency. Queue drops count copied frames superseded by the app;
+CameraX's internal drops are not exposed by this API. Thermal values use Android
+PowerManager status codes (0 = none; -1 = unavailable). The panel also identifies
+device/OS, app/model/labels/config, input resolution, duration and warm-up frames.
+
+One single-thread executor owns model initialization, inference and close. A
+separate camera executor copies frames, and the app retains only one in-flight
+frame plus the newest pending copy. A short synchronized section orders domain
+events and publishes immutable StateFlow snapshots; native inference never holds
+that lock. Explicit 250 ms ticks expire state even when detections are empty.
+`StateFlow` carries the latest screen state; durable event storage follows in
+OpenSpec block 7. Images and trip events are not saved by this block.
+
+### Camera verification
+
+With an unlocked Pixel attached, run from `android/`:
+
+```powershell
+.\gradlew.bat :app:testDebugUnitTest :app:lintDebug :app:connectedDebugAndroidTest '-Pandroid.testInstrumentationRunnerArguments.class=dev.diyhud.ForegroundSessionTest'
+```
+
+This exercises real-camera start/stop/reset, diagnostics geometry/metrics,
+background/resume, an unavailable-camera selection fixture and
+fatal-error recovery. The slow-worker JVM fixture checks bounded work, frame
+release and reset/session isolation; live/replay results must agree.
+
+Permission denial needs a separate invocation: revoking permission kills the
+target process, so it cannot be done inside that process's running test. After
+building both APKs, from `android/`:
+
+```powershell
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+adb shell pm revoke dev.diyhud android.permission.CAMERA
+adb shell pm clear-permission-flags dev.diyhud android.permission.CAMERA user-set user-fixed
+adb shell am instrument -w -e class dev.diyhud.PermissionSessionTest dev.diyhud.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+That test clicks **Don't allow** in the real system permission dialog and checks
+that no session starts and the app explains recovery. It skips if permission was
+already granted. Grant access via the next app permission prompt when finished.
+For active-session revocation, start the app normally, press Start and confirm
+the camera is active; then run `adb shell pm revoke dev.diyhud android.permission.CAMERA`
+from the PC. On the reference Android 16 device this terminates the app process.
+Reopen DIY HUD: it must stay idle with unknown estimates and require explicit
+Start plus camera permission. After regrant, a fresh real-camera session must work.
+
+For offline cold start, keep USB connected, disable all active phone networks,
+force-stop DIY HUD and repeat the foreground camera test. Airplane mode alone
+is insufficient if Wi-Fi remains enabled. Verify `adb shell dumpsys connectivity`
+reports no active default network before testing, and restore the phone's prior
+network and sleep settings afterward. Use an unlocked, awake phone for the test.
+Device findings and remaining acceptance work: `../docs/CAMERA_HUD_RESULTS.md`.

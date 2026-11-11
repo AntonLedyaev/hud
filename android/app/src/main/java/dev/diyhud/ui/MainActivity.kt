@@ -1,67 +1,97 @@
 package dev.diyhud.ui
 
+import android.Manifest
+import android.content.Intent
+import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Bundle
+import android.provider.Settings
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.darkColorScheme
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.ViewModelProvider
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.compose.runtime.mutableStateOf
-import dev.diyhud.domain.RestrictionState
-import dev.diyhud.inference.LiteRtDetector
-import java.util.UUID
-import java.util.concurrent.Executors
+import dev.diyhud.domain.Freshness
+import dev.diyhud.session.*
 
 class MainActivity : ComponentActivity() {
-    private val modelStatus = mutableStateOf("Checking local model…")
-    private val modelWorker = Executors.newSingleThreadExecutor()
+    internal val coordinator: HudViewModel by lazy { ViewModelProvider(this)[HudViewModel::class.java] }
+    private val cameraPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted && lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) coordinator.start()
+        else coordinator.permissionDenied()
+    }
+    internal fun startRecognition() {
+        if (checkSelfPermission(Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED) coordinator.start()
+        else cameraPermission.launch(Manifest.permission.CAMERA)
+    }
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
+            val ui by coordinator.ui.collectAsState()
+            DisposableEffect(ui.phase == Phase.ACTIVE) {
+                if (ui.phase == Phase.ACTIVE) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+                onDispose { window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
+            }
             MaterialTheme(colorScheme = darkColorScheme()) {
-                Surface(modifier = Modifier.fillMaxSize()) {
-                    Column(
-                        modifier = Modifier.safeDrawingPadding().padding(24.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                    ) {
-                        Text("DIY HUD", style = MaterialTheme.typography.headlineLarge)
-                        Text("—", style = MaterialTheme.typography.displayLarge)
-                        Text(modelStatus.value)
-                        Text("Camera connection is the next implementation step.")
-                        Text("Driver assistant · Always follow road signs.")
+                Surface(Modifier.fillMaxSize()) {
+                    HudScreen(ui, coordinator, ::startRecognition) {
+                        startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.fromParts("package", packageName, null)))
                     }
                 }
             }
         }
-        modelWorker.execute {
-            val message = try {
-                LiteRtDetector.open(assets).use { detector ->
-                    val initial = RestrictionState(UUID.randomUUID().toString(), detector.contract.modelVersion,
-                        detector.contract.labels.sha256, detector.contract.config)
-                    check(initial.speed.current == null)
-                    "Experimental model loaded · ${detector.backend}"
-                }
-            } catch (failure: Exception) {
-                "Model unavailable. Reinstall a build with a validated model bundle."
-            }
-            runOnUiThread { if (!isDestroyed) modelStatus.value = message }
-        }
     }
+    override fun onStop() {
+        coordinator.stop("App left foreground. Press Start for a new session.")
+        super.onStop()
+    }
+}
 
-    override fun onDestroy() {
-        modelWorker.shutdown()
-        super.onDestroy()
+@Composable private fun HudScreen(ui: HudUi, model: HudViewModel, start: () -> Unit, settings: () -> Unit) {
+    val idle = ui.phase == Phase.READY || ui.phase == Phase.ERROR
+    Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),
+        horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("DIY HUD", style = MaterialTheme.typography.headlineMedium)
+        Text("Observed speed limit", style = MaterialTheme.typography.titleMedium)
+        Text(ui.restriction?.speed?.current?.toString() ?: "—", style = MaterialTheme.typography.displayLarge)
+        Text("km/h")
+        val speed = ui.restriction?.speed
+        Text(when (speed?.freshness) {
+            Freshness.KNOWN -> "Confirmed ${(ui.nowMs - (speed.confirmedAtMs ?: ui.nowMs)).coerceAtLeast(0) / 1000}s ago"
+            Freshness.STALE -> "Stale — waiting for a new sign"
+            else -> "Unknown — waiting for a confirmed sign"
+        })
+        Text(when (ui.restriction?.overtaking?.freshness) {
+            Freshness.KNOWN -> if (ui.restriction.overtaking.current == true) "No overtaking" else "Overtaking: unknown"
+            Freshness.STALE -> "Overtaking: stale"
+            else -> "Overtaking: unknown"
+        })
+        if (ui.restriction?.stopUntilMs != null) Text("STOP sign observed", color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.headlineMedium)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Button(onClick = start, enabled = idle) { Text("Start") }
+            Button(onClick = { model.stop() }, enabled = ui.phase in listOf(Phase.STARTING, Phase.ACTIVE)) { Text("Stop") }
+            OutlinedButton(onClick = { model.reset() }, enabled = ui.phase == Phase.ACTIVE) { Text("Reset") }
+        }
+        if (idle) Row(verticalAlignment = Alignment.CenterVertically) {
+            Text("Diagnostics before Start")
+            Switch(checked = ui.diagnostics, onCheckedChange = { model.diagnosticMode(it) })
+        }
+        Text(ui.message)
+        if (idle) TextButton(onClick = settings) { Text("App settings") }
+        CameraPanel(ui, model)
+        Text("Experimental driver assistant · Always follow road signs.", style = MaterialTheme.typography.bodySmall)
     }
 }
