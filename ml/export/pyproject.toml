@@ -1,0 +1,28 @@
+[project]
+name = "hud-export-experiment"
+version = "0.1.0"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "ultralytics==8.4.120",
+    "torch==2.11.0",
+    "torchvision==0.26.0",
+    "tensorflow==2.19.0",
+    "tf-keras==2.19.0",
+    "onnx2tf==1.28.8",
+    "ai-edge-litert==2.3.0",
+    "onnx==1.22.0",
+    "onnxruntime==1.28.0",
+    "onnxslim==0.1.96",
+    "onnx-graphsurgeon>=0.3.26",
+    "sng4onnx>=1.0.1",
+    "pyyaml>=6.0",
+]
+
+[tool.uv.sources]
+torch = [{ index = "pytorch-cu128" }]
+torchvision = [{ index = "pytorch-cu128" }]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true

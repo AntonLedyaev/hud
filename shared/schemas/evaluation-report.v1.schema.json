@@ -1,0 +1,200 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "labels_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "model_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "reference_sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "runtime": {
+      "type": "string",
+      "minLength": 1
+    },
+    "config": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "confidence_threshold": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "minimum_hits": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "confirmation_window_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "association_iou": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "rearm_absence_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "estimate_max_age_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "stop_display_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sampling_enabled": {
+          "type": "boolean"
+        },
+        "sample_interval_ms": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "sample_budget_bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "event_queue_capacity": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "storage_budget_bytes": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "version",
+        "confidence_threshold",
+        "minimum_hits",
+        "confirmation_window_ms",
+        "association_iou",
+        "rearm_absence_ms",
+        "estimate_max_age_ms",
+        "stop_display_ms",
+        "sampling_enabled",
+        "sample_interval_ms",
+        "sample_budget_bytes",
+        "event_queue_capacity",
+        "storage_budget_bytes"
+      ],
+      "additionalProperties": false
+    },
+    "condition": {
+      "enum": [
+        "printed_daylight",
+        "led",
+        "night",
+        "rain"
+      ]
+    },
+    "negative_scene_count": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "per_class": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "class_id": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "sample_count": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "precision": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "recall": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          },
+          "map_50_95": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1
+          }
+        },
+        "required": [
+          "class_id",
+          "sample_count",
+          "precision",
+          "recall",
+          "map_50_95"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "state": {
+      "type": "object",
+      "properties": {
+        "false_transitions_per_hour": {
+          "type": "number",
+          "minimum": 0
+        },
+        "confirmation_delay_p95_ms": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "agreement": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "unknown_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        },
+        "stale_fraction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1
+        }
+      },
+      "required": [
+        "false_transitions_per_hour",
+        "confirmation_delay_p95_ms",
+        "agreement",
+        "unknown_fraction",
+        "stale_fraction"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "labels_sha256",
+    "model_sha256",
+    "reference_sha256",
+    "runtime",
+    "config",
+    "condition",
+    "negative_scene_count",
+    "per_class",
+    "state"
+  ],
+  "additionalProperties": false
+}

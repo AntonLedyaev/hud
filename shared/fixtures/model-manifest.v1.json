@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "model_version": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "labels": {
+    "version": 1,
+    "sha256": "e069dcb4ed2c1efb37a1eb8abaf7a613c171333116cd4883b4b1779efdb027b6",
+    "classes": [
+      {
+        "id": 0,
+        "name": "speed_limit_30"
+      },
+      {
+        "id": 1,
+        "name": "speed_limit_50"
+      },
+      {
+        "id": 2,
+        "name": "speed_limit_60"
+      },
+      {
+        "id": 3,
+        "name": "speed_limit_70"
+      },
+      {
+        "id": 4,
+        "name": "speed_limit_80"
+      },
+      {
+        "id": 5,
+        "name": "speed_limit_100"
+      },
+      {
+        "id": 6,
+        "name": "speed_limit_120"
+      },
+      {
+        "id": 7,
+        "name": "end_speed_limit_80"
+      },
+      {
+        "id": 8,
+        "name": "end_all_restrictions"
+      },
+      {
+        "id": 9,
+        "name": "stop"
+      },
+      {
+        "id": 10,
+        "name": "no_overtaking"
+      },
+      {
+        "id": 11,
+        "name": "end_no_overtaking"
+      }
+    ]
+  },
+  "provenance": {
+    "run_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "checkpoint_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "config_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "dataset_manifest_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "tools": {
+      "python": "test"
+    }
+  },
+  "input": {
+    "shape": [
+      1,
+      320,
+      320,
+      3
+    ],
+    "dtype": "float32",
+    "quantization": null
+  },
+  "preprocessing": {
+    "channel_order": "RGB",
+    "layout": "NHWC",
+    "normalization": {
+      "scale": 0.5,
+      "offset": 0.5
+    },
+    "resize": "letterbox",
+    "padding_value": 1,
+    "rotation": "upright_before_resize"
+  },
+  "output": {
+    "tensor": {
+      "shape": [
+        1,
+        2100,
+        16
+      ],
+      "dtype": "float32",
+      "quantization": null
+    },
+    "layout": "BNC",
+    "box_format": "cxcywh",
+    "coordinates": "normalized_input",
+    "score_decoding": "class_probability",
+    "nms_owner": "model",
+    "confidence_threshold": 0.5,
+    "nms_iou": 0.5
+  },
+  "config": {
+    "version": 1,
+    "confidence_threshold": 0.5,
+    "minimum_hits": 1,
+    "confirmation_window_ms": 1,
+    "association_iou": 0.5,
+    "rearm_absence_ms": 1,
+    "estimate_max_age_ms": 1,
+    "stop_display_ms": 1,
+    "sampling_enabled": false,
+    "sample_interval_ms": 1,
+    "sample_budget_bytes": 1,
+    "event_queue_capacity": 1,
+    "storage_budget_bytes": 1
+  }
+}

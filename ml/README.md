@@ -40,3 +40,32 @@ you want a `+cu128` suffix, not `+cpu`. To pick a different CUDA build, check
 pytorch.org/get-started/locally.
 
 If `check_env.py` and `smoke_test.py` both pass, the Stage 0 ML goal is met.
+
+## Verified Stage 1 environment
+
+The environment check and two-epoch COCO8 smoke training completed on the RTX 3060
+(12 GiB), with Python 3.12.14, torch 2.11.0+cu128, Ultralytics 8.4.120,
+OpenCV 5.0.0, Albumentations 2.0.8, ONNX 1.22.0 and ONNX Runtime 1.28.0.
+Training used CUDA; the resulting `runs/smoke_test/weights/best.onnx` exported
+successfully at input `[1, 3, 320, 320]`, output `[1, 84, 2100]`, opset 20.
+
+This is an 80-class COCO infrastructure test, not the twelve-class road-sign
+model or a recognition-quality result. TFLite conversion and source-to-phone
+parity remain separate gates. Reproduce using the two `uv run` commands above;
+run outputs and weights stay ignored by git.
+
+## Isolated TFLite export experiment
+
+From the repository root:
+
+```powershell
+uv sync --project ml/export --locked
+uv run --project ml/export python ml/export/experiment.py
+```
+
+See `export/README.md` for the isolated toolchain, fixture files and report format.
+The twelve-class untrained nano experiment passed ONNX and TFLite CPU tensor
+comparison against PyTorch: observed maximum absolute errors were approximately
+3.05e-5 and 2.29e-5 respectively. The corresponding Android CPU parity test also
+passed on Pixel 6a; reproduce it from `android/README.md`. Neither the COCO smoke
+checkpoint nor the untrained twelve-class checkpoint is a usable road-sign model.

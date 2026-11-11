@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "session_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "reset_generation": 1,
+  "frame_id": 1,
+  "capture_offset_ms": 1,
+  "model_version": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "labels_sha256": "e069dcb4ed2c1efb37a1eb8abaf7a613c171333116cd4883b4b1779efdb027b6",
+  "detections": [
+    {
+      "class_id": 1,
+      "confidence": 0.5,
+      "box": {
+        "left": 0.1,
+        "top": 0.2,
+        "right": 0.4,
+        "bottom": 0.5
+      }
+    }
+  ]
+}

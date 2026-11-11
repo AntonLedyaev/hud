@@ -6,19 +6,19 @@ Follow groups in dependency order. Pure contract/domain and dataset work can pro
 
 ## 1. Shared contracts and evaluation inputs
 
-- [ ] 1.1 Define versioned model-manifest and observation/event schemas under `shared/`, covering the complete inference contract, session/reset identity, monotonic times, provenance and effective configuration snapshots; verify valid fixtures round-trip and malformed versions, boxes, scores and tensor declarations fail validation.
-- [ ] 1.2 Implement canonical label loading and generated ML/Android mappings from `shared/labels.yaml`; verify all twelve v1 IDs match and tests reject reordered IDs, duplicates, missing classes and hash mismatches without maintaining another handwritten class list.
-- [ ] 1.3 Create the reference-fixture format and evaluation protocol, including per-class sample counts, negative scenes, numeric parity tolerances, supported conditions and state-event ground truth; verify a small synthetic fixture can be validated and that missing required metrics are reported explicitly.
-- [ ] 1.4 Record the developer's reference phone, Android version and available device access in the acceptance profile; verify the profile identifies a real device and distinguishes measurements still pending. Leave device-dependent tasks incomplete if no phone is available.
-- [ ] 1.5 Document the shared contracts, generation commands and artifact locations; verify documented commands reproduce fixture mappings and that model/data paths are ignored by git.
+- [x] 1.1 Define versioned model-manifest and observation/event schemas under `shared/`, covering the complete inference contract, session/reset identity, monotonic times, provenance and effective configuration snapshots; verify valid fixtures round-trip and malformed versions, boxes, scores and tensor declarations fail validation.
+- [x] 1.2 Implement canonical label loading and generated ML/Android mappings from `shared/labels.yaml`; verify all twelve v1 IDs match and tests reject reordered IDs, duplicates, missing classes and hash mismatches without maintaining another handwritten class list.
+- [x] 1.3 Create the reference-fixture format and evaluation protocol, including per-class sample counts, negative scenes, numeric parity tolerances, supported conditions and state-event ground truth; verify a small synthetic fixture can be validated and that missing required metrics are reported explicitly.
+- [x] 1.4 Record the developer's reference phone, Android version and available device access in the acceptance profile; verify the profile identifies a real device and distinguishes measurements still pending. Leave device-dependent tasks incomplete if no phone is available.
+- [x] 1.5 Document the shared contracts, generation commands and artifact locations; verify documented commands reproduce fixture mappings and that model/data paths are ignored by git.
 
 ## 2. Android shell and export compatibility experiment
 
-- [ ] 2.1 Initialize the Android Studio Kotlin/Compose project under `android/` with one `:app` module and `ui`, `session`, `camera`, `inference`, `domain`, `data` packages; verify the Gradle wrapper builds and the empty app launches, with no Android imports in domain code.
-- [ ] 2.2 Verify the existing ML environment using `uv run scripts/check_env.py` and the existing smoke test; record toolchain versions and GPU execution, distinguishing toy COCO training from traffic-sign validation in `ml/README.md`.
-- [ ] 2.3 Implement a minimal twelve-output YOLO export experiment under `ml/export/`, using the existing YOLO11-nano smoke setup as a starting candidate; verify source inference, ONNX export and TFLite conversion on fixed fixtures and record the exact checkpoint/config, converter versions and unsupported operators. Random or toy weights are explicitly experimental.
-- [ ] 2.4 Execute the experimental TFLite model through an Android CPU harness on the reference phone, pin compatible runtime/SDK/build versions and compare tensors/decoded outputs with source fixtures; verify declared parity tolerances pass before committing to a long training run.
-- [ ] 2.5 Document Windows Android setup, the local model staging input and export experiment commands in the subproject READMEs; verify a clean build can reproduce the experiment with recorded inputs and that a missing production bundle cannot silently select fixture inference.
+- [x] 2.1 Initialize the Android Studio Kotlin/Compose project under `android/` with one `:app` module and `ui`, `session`, `camera`, `inference`, `domain`, `data` packages; verify the Gradle wrapper builds and the empty app launches, with no Android imports in domain code.
+- [x] 2.2 Verify the existing ML environment using `uv run scripts/check_env.py` and the existing smoke test; record toolchain versions and GPU execution, distinguishing toy COCO training from traffic-sign validation in `ml/README.md`.
+- [x] 2.3 Implement a minimal twelve-output YOLO export experiment under `ml/export/`, using the existing YOLO11-nano smoke setup as a starting candidate; verify source inference, ONNX export and TFLite conversion on fixed fixtures and record the exact checkpoint/config, converter versions and unsupported operators. Random or toy weights are explicitly experimental.
+- [x] 2.4 Execute the experimental TFLite model through an Android CPU harness on the reference phone, pin compatible runtime/SDK/build versions and compare tensors/decoded outputs with source fixtures; verify declared parity tolerances pass before committing to a long training run.
+- [x] 2.5 Document Windows Android setup, the local model staging input and export experiment commands in the subproject READMEs; verify a clean build can reproduce the experiment with recorded inputs and that a missing production bundle cannot silently select fixture inference.
 
 ## 3. Pure Kotlin confirmation and restriction state
 

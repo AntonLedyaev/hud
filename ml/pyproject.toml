@@ -15,6 +15,7 @@ dependencies = [
     "onnx>=1.16",
     "onnxruntime>=1.19",      # sanity-check exported ONNX models on CPU
     "pyyaml>=6.0",
+    "jsonschema>=4.23,<5",
 
 ]
 

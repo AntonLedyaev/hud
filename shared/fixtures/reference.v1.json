@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "labels_sha256": "e069dcb4ed2c1efb37a1eb8abaf7a613c171333116cd4883b4b1779efdb027b6",
+  "synthetic": false,
+  "split": "validation",
+  "parity": {
+    "score_absolute_tolerance": 0.5,
+    "minimum_box_iou": 0.5
+  },
+  "scenes": [
+    {
+      "scene_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "sequence_id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "condition": "printed_daylight",
+      "ground_truth": [],
+      "expected_events": []
+    }
+  ]
+}

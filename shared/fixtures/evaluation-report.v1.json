@@ -1,0 +1,117 @@
+{
+  "schema_version": 1,
+  "labels_sha256": "e069dcb4ed2c1efb37a1eb8abaf7a613c171333116cd4883b4b1779efdb027b6",
+  "model_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "reference_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "runtime": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "config": {
+    "version": 1,
+    "confidence_threshold": 0.5,
+    "minimum_hits": 1,
+    "confirmation_window_ms": 1,
+    "association_iou": 0.5,
+    "rearm_absence_ms": 1,
+    "estimate_max_age_ms": 1,
+    "stop_display_ms": 1,
+    "sampling_enabled": false,
+    "sample_interval_ms": 1,
+    "sample_budget_bytes": 1,
+    "event_queue_capacity": 1,
+    "storage_budget_bytes": 1
+  },
+  "condition": "printed_daylight",
+  "negative_scene_count": 1,
+  "per_class": [
+    {
+      "class_id": 0,
+      "sample_count": 0,
+      "precision": 0,
+      "recall": 0,
+      "map_50_95": 0
+    },
+    {
+      "class_id": 1,
+      "sample_count": 0,
+      "precision": 0,
+      "recall": 0,
+      "map_50_95": 0
+    },
+    {
+      "class_id": 2,
+      "sample_count": 0,
+      "precision": 0,
+      "recall": 0,
+      "map_50_95": 0
+    },
+    {
+      "class_id": 3,
+      "sample_count": 0,
+      "precision": 0,
+      "recall": 0,
+      "map_50_95": 0
+    },
+    {
+      "class_id": 4,
+      "sample_count": 0,
+      "precision": 0,
+      "recall": 0,
+      "map_50_95": 0
+    },
+    {
+      "class_id": 5,
+      "sample_count": 0,
+      "precision": 0,
+      "recall": 0,
+      "map_50_95": 0
+    },
+    {
+      "class_id": 6,
+      "sample_count": 0,
+      "precision": 0,
+      "recall": 0,
+      "map_50_95": 0
+    },
+    {
+      "class_id": 7,
+      "sample_count": 0,
+      "precision": 0,
+      "recall": 0,
+      "map_50_95": 0
+    },
+    {
+      "class_id": 8,
+      "sample_count": 0,
+      "precision": 0,
+      "recall": 0,
+      "map_50_95": 0
+    },
+    {
+      "class_id": 9,
+      "sample_count": 0,
+      "precision": 0,
+      "recall": 0,
+      "map_50_95": 0
+    },
+    {
+      "class_id": 10,
+      "sample_count": 0,
+      "precision": 0,
+      "recall": 0,
+      "map_50_95": 0
+    },
+    {
+      "class_id": 11,
+      "sample_count": 0,
+      "precision": 0,
+      "recall": 0,
+      "map_50_95": 0
+    }
+  ],
+  "state": {
+    "false_transitions_per_hour": 0.5,
+    "confirmation_delay_p95_ms": 1,
+    "agreement": 0.5,
+    "unknown_fraction": 0.5,
+    "stale_fraction": 0.5
+  }
+}
