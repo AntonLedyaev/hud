@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "status": "draft_not_frozen",
+  "scope": "Stage 1, all canonical classes; printed German/EU signs in daylight",
+  "per_class": {
+    "minimum_instances": 30,
+    "minimum_precision": 0.9,
+    "minimum_recall": 0.8,
+    "minimum_map_50_95": 0.5
+  },
+  "corpus": {
+    "minimum_negative_scenes": 100,
+    "minimum_independent_test_drives": 5,
+    "minimum_supported_state_minutes": 60,
+    "sequence_disjoint": true,
+    "include_small_sign_stratum": true
+  },
+  "state": {
+    "maximum_false_transitions_per_hour": 1,
+    "maximum_confirmation_delay_p95_ms": 4000,
+    "minimum_agreement": 0.9,
+    "maximum_unknown_fraction": 0.1,
+    "maximum_stale_fraction": 0.05
+  },
+  "device": {
+    "model": "Pixel 6a",
+    "android_api": 36,
+    "backend": "CPU",
+    "minimum_duration_ms": 1200000,
+    "warmup_ms": 5000,
+    "minimum_steady_fps": 1,
+    "maximum_inference_p95_ms": 1000,
+    "maximum_capture_to_result_p95_ms": 2000,
+    "maximum_last_to_first_steady_latency_ratio": 1.25,
+    "maximum_pending_frames": 1,
+    "offline_required": true,
+    "fatal_errors_allowed": 0,
+    "evidence_gaps_allowed": 0
+  },
+  "evidence": {
+    "event_queue_capacity": 256,
+    "storage_budget_bytes": 100000000,
+    "sampling_default": false,
+    "sample_interval_ms_when_enabled": 1000,
+    "sample_budget_bytes_when_enabled": 10000000
+  },
+  "adverse_conditions": ["LED", "night", "rain"],
+  "final_acceptance_requires": [
+    "Reviewed thresholds and operating envelope frozen before opening final test data",
+    "Validation-selected full config and exact model/bundle/app hashes",
+    "Independent manually annotated sequences for temporal confirmation and expiry",
+    "All canonical classes meeting every gate, with no missing metrics",
+    "Source-to-export and Android parity for the exact frozen pair",
+    "Physical-device sustained run and annotated real-drive results",
+    "Separate adverse-condition results; no inferred success from daylight metrics"
+  ]
+}

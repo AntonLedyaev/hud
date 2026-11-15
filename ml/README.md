@@ -120,3 +120,23 @@ GTSDB conditions are unstratified: LED/night/rain metrics are explicitly unavail
 and are not inferred from aggregate results. The evaluator never opens a final
 test split. Predictions and reports remain in ignored `ml/runs/`; the comparison
 summary records the chosen experimental checkpoint and limitations separately.
+
+## Confidence diagnostics and Stage 1 calibration
+
+`training/calibrate.py` compares higher confidence thresholds using saved
+**provisional validation** predictions. It verifies labels, bundle/checkpoint/
+dataset provenance, split membership and baseline count reproduction. It refuses
+thresholds below the saved prediction floor, final-test tuning and output reuse.
+No weights, Android settings or training labels are changed.
+
+```powershell
+ml/.venv/Scripts/python.exe ml/training/calibrate.py --evaluation ml/runs/gtsdb-baseline-640-v2/evaluation --bundle ml/runs/trained-bundle-v2-confirmation-v2 --dataset-manifest ml/data/gtsdb-official-v1/manifest.json --output ml/runs/calibration-v1/confidence-new.json
+ml/.venv/Scripts/python.exe -m pytest ml/training/test_calibrate.py ml/training/test_evaluation.py -q
+```
+
+The numeric sheet `training/acceptance-draft.json` is explicitly unfrozen. The
+diagnostic reports per-class failures, but cannot pass Stage 1 or calibrate
+confirmation/expiry from isolated scenes. Annotated temporal validation and
+independent final test drives are still needed. Copy user-selected trip exports
+under ignored `ml/data/trip-exports/`; do not commit raw JPEGs or archives.
+Results, limitations and required next inputs: [calibration preparation](../docs/CALIBRATION_RESULTS.md).
