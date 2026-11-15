@@ -49,8 +49,9 @@ Its true end time stays unknown; recovery time is a separate field.
 This is not a sustained 20-minute storage/thermal run or a physical full-disk
 destructive test. Disk failure, overflow and budget conditions use deterministic
 fixtures. The initial 7.1/7.2 implementation wrote no images. The follow-up below
-adds explicit bounded sampling/recovery; trip review/export/deletion and final
-Stage 1 acceptance remain open. Candidate-progress diagnostics are not a durable
+adds explicit bounded sampling/recovery; trip review/export/deletion were later
+implemented in 0.1.3 (see `TRIP_REVIEW_RESULTS.md`). Final Stage 1 acceptance
+remains open. Candidate-progress diagnostics are not a durable
 per-frame detector trace.
 
 ## Sampling and recovery follow-up (0.1.2)
@@ -115,6 +116,7 @@ prevents that completeness claim and invalidates estimates across missing input.
 Image limits/drop counters and unreviewed status are separate from this event
 completeness flag. Selected images cannot reconstruct every missed candidate or
 serve as complete drive ground truth. No automatic upload or training import is
-performed. Review/export/deletion are the next block.
+performed. Review/export/deletion were added in 0.1.3; see
+[Trip review checks](TRIP_REVIEW_RESULTS.md).
 
 Commands and UI status semantics: [Android README](../android/README.md#local-event-journal-011).

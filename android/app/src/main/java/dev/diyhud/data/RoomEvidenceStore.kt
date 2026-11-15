@@ -9,6 +9,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileOutputStream
+import java.io.OutputStream
 import java.security.MessageDigest
 import java.util.concurrent.ArrayBlockingQueue
 import java.util.concurrent.ThreadPoolExecutor
@@ -24,8 +25,8 @@ class RoomEvidenceStore(val database: EvidenceDatabase, private val sampleDirect
     private val json = Json { encodeDefaults = true }
     private var recovered = false
     private val budgets = mutableMapOf<String, Long>()
-    @Synchronized fun recover(now: Long = System.currentTimeMillis()): Int {
-        if (recovered) return 0
+    @Synchronized fun recover(now: Long = System.currentTimeMillis(), force: Boolean = false): Int {
+        if (recovered && !force) return 0
         val count = dao.recover(now)
         sampleDirectory?.takeIf { it.exists() }?.let { directory ->
             val referenced = dao.samplePaths().toHashSet()
@@ -35,8 +36,89 @@ class RoomEvidenceStore(val database: EvidenceDatabase, private val sampleDirect
                     check(file.delete()) { "Cannot clean interrupted sample" }
             }
         }
+        for (row in dao.sessions().filter { it.status == "DELETING" }) deleteTrip(row.id)
         recovered = true
         return count
+    }
+    @Synchronized fun prepareReview() {
+        check(budgets.isEmpty()) { "Wait for session recording to close" }
+        recover(force = true)
+    }
+    private fun closed(id: String): SessionEntity {
+        val row = requireNotNull(dao.session(id)) { "Trip no longer exists" }
+        check(row.status in listOf("COMPLETED", "INTERRUPTED") && id !in budgets) { "Trip is active or deletion is pending" }
+        return row
+    }
+    @Synchronized fun review(id: String): TripReview {
+        val row = closed(id)
+        return TripReview(replay(id), json.decodeFromString(row.headerJson), dao.samples(id))
+    }
+    @Synchronized fun reviewEvents(id: String, after: Long = -1, includeTicks: Boolean = false): List<ReviewedEvent> {
+        closed(id)
+        return dao.reviewEvents(id, after, includeTicks).map { row ->
+            val sources = json.decodeFromString<List<Long>>(row.sourceSequencesJson)
+                .mapNotNull { sequence -> dao.event(id, sequence)?.let { EventCodec.decode(it.json) } }
+            ReviewedEvent(row, EventCodec.decode(row.json), sources)
+        }
+    }
+    fun sampleFile(sample: SampleEntity, verify: Boolean = true): File {
+        require(sample.sessionId.matches(Regex("[A-Za-z0-9_-]+")))
+        require(sample.path == "${sample.sessionId}_${sample.generation}_${sample.frameId}.jpg") { "Invalid sample path" }
+        val directory = requireNotNull(sampleDirectory).canonicalFile
+        val file = File(directory, sample.path)
+        require(file.canonicalFile.parentFile == directory) { "Sample escapes private directory" }
+        if (verify) require(file.isFile && file.length() == sample.byteCount && TripArchive.fileHash(file) == sample.sha256) {
+            "Sample file missing or corrupt"
+        }
+        return file
+    }
+    @Synchronized fun export(id: String, selected: Set<SampleKey>, output: OutputStream): TripManifest {
+        val row = closed(id)
+        val header = json.decodeFromString<SessionHeader>(row.headerJson)
+        val samples = dao.samples(id)
+        val chosen = samples.filter { SampleKey(it.generation, it.frameId) in selected }
+        require(chosen.size == selected.size) { "Selected image no longer exists" }
+        val images = chosen.map { sample ->
+            ArchiveImage(ArchiveSample("images/${sample.path}", sample.sha256, sample.byteCount, sample.sourceSequence,
+                json.decodeFromString(sample.observationJson), json.decodeFromString(sample.configJson), sample.unreviewed), sampleFile(sample))
+        }
+        val events = sequence {
+            var after = -1L
+            while (true) {
+                val page = dao.events(id, after)
+                if (page.isEmpty()) break
+                for (record in page) {
+                    val event = EventCodec.decode(record.json)
+                    require(event.sequence == record.sequence && event.offsetMs == record.offsetMs) { "Event row mismatch" }
+                    yield(event); after = record.sequence
+                }
+            }
+        }
+        return TripArchive.write(output, header, ArchiveEnd(row.status, row.endedAtEpochMs,
+            row.recoveredAtEpochMs, row.endReason, row.incomplete, row.lastAttemptSequence,
+            row.dropped, row.samplingStatusJson?.let { json.decodeFromString(it) }), events, images, samples.size)
+    }
+    /** Keep metadata until every owned image is removed, so failed cleanup can resume. */
+    @Synchronized fun deleteTrip(id: String, remove: (File) -> Boolean = { it.delete() }): DeleteResult {
+        val row = dao.session(id) ?: return DeleteResult(true)
+        check(row.status != "OPEN" && id !in budgets) { "Stop recognition before deletion" }
+        require(id.matches(Regex("[A-Za-z0-9_-]+")))
+        dao.updateSession(row.copy(status = "DELETING", warning = "Local deletion pending; retry cleanup"))
+        try {
+            val files = dao.samples(id).map { sampleFile(it, verify = false) }.toMutableSet()
+            sampleDirectory?.let { directory ->
+                val owned = Regex("${Regex.escape(id)}_[0-9]+_[0-9]+\\.jpg(\\.partial)?")
+                files += directory.listFiles().orEmpty().filter { owned.matches(it.name) }
+            }
+            for (file in files) if (file.exists() && !remove(file)) return DeleteResult(false, "Image cleanup failed. Retry deletion.")
+            dao.deleteSession(id)
+            // Reclaim SQLite's high-water allocation while no recognition is running.
+            return try {
+                database.openHelper.writableDatabase.query("PRAGMA wal_checkpoint(TRUNCATE)").use { it.moveToFirst() }
+                database.openHelper.writableDatabase.execSQL("VACUUM")
+                DeleteResult(true)
+            } catch (_: Exception) { DeleteResult(true, "Trip deleted; database space could not be compacted yet.") }
+        } catch (_: Exception) { return DeleteResult(false, "Local cleanup failed. Retry deletion.") }
     }
     private fun reserve(limit: Long, bytes: Long) {
         // Reserve room for SQLite pages/WAL overhead and a final incomplete footer.

@@ -63,10 +63,10 @@ Follow groups in dependency order. Pure contract/domain and dataset work can pro
 
 ## 8. Evidence review, export and deletion
 
-- [ ] 8.1 Add completed/interrupted-trip review with event provenance and completeness status; verify review is inaccessible during active recognition and correctly distinguishes incomplete evidence from a complete trip.
-- [ ] 8.2 Implement user-selected export of a versioned manifest, ordered JSONL events and explicitly selected images; verify exports with and without images preserve config/provenance, contain no broken included-image references and initiate no automatic upload.
-- [ ] 8.3 Implement local trip deletion across database rows and image files with retryable cleanup; verify deletion removes local evidence after retry and communicates that previously exported copies remain outside local control.
-- [ ] 8.4 Document the export format and annotation handoff; verify an exported complete trip replays to its recorded states, gaps are detected, partial exports are not advertised as complete, and unreviewed images are not automatically imported as training ground truth.
+- [x] 8.1 Add completed/interrupted-trip review with event provenance and completeness status; verify review is inaccessible during active recognition and correctly distinguishes incomplete evidence from a complete trip.
+- [x] 8.2 Implement user-selected export of a versioned manifest, ordered JSONL events and explicitly selected images; verify exports with and without images preserve config/provenance, contain no broken included-image references and initiate no automatic upload.
+- [x] 8.3 Implement local trip deletion across database rows and image files with retryable cleanup; verify deletion removes local evidence after retry and communicates that previously exported copies remain outside local control.
+- [x] 8.4 Document the export format and annotation handoff; verify an exported complete trip replays to its recorded states, gaps are detected, partial exports are not advertised as complete, and unreviewed images are not automatically imported as training ground truth.
 
 ## 9. Calibration and end-to-end acceptance
 

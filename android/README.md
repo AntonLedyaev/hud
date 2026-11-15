@@ -286,8 +286,8 @@ budget exhaustion, database-open failure and worker rejection. Storage tests
 verify all event kinds/source links, exact replay, SQLite close/reopen, explicit
 incompleteness and retention when a budget is reached.
 
-Opt-in sampling and partial-image cleanup are available since 0.1.2. The
-review/export/delete screens remain later tasks; there is no automatic upload.
+Opt-in sampling and partial-image cleanup are available since 0.1.2. Review,
+export and deletion are available since 0.1.3; there is no automatic upload.
 Detailed evidence: `../docs/EVIDENCE_STORAGE_RESULTS.md`.
 
 ## Optional sample images (0.1.2)
@@ -339,4 +339,39 @@ adb shell am instrument -w -e class dev.diyhud.SampleStorageTest,dev.diyhud.Samp
 The camera tests require an unlocked phone. Sampling tests use synthetic RGB
 fixtures; they cover encoding, source links, byte/rate limits, migration,
 interrupted-file recovery, explicit activation and the next trip defaulting off.
-Viewing/exporting/deleting trips and selected images will be added in block 8.
+Viewing/exporting/deleting trips and selected images are described below.
+
+## Trip review, export and deletion (0.1.3)
+
+After **Stop**, open **Trips** → **Open trip**. Completed and interrupted trips
+show event completeness, model/config and transition source links. **Event
+details** expands the full record; **Show clock ticks** includes clock events.
+Images saved in past sessions remain available: **View** opens an upright JPEG.
+Sessions recorded with sampling off have events and no saved camera frames.
+Review is unavailable during recognition and while Stop is flushing recording.
+
+Check the images to include, then choose **Export ZIP** and a destination in
+Android's document picker. No images are checked initially. All recorded events
+and versioned metadata are included; only checked images are copied. Saving to
+Downloads is convenient for USB transfer to the PC. An incomplete event trace
+is explicitly marked even when the ZIP itself was written successfully.
+
+**Delete local trip** asks for confirmation, removes local rows/images and keeps
+previously exported copies. Failed cleanup stays visible and can be retried;
+restart/review also retries a deletion already requested. Export-write failure
+likewise attempts partial-document cleanup and reports when manual removal is
+needed. There is no background upload or automatic ML dataset import.
+
+Format, integrity/replay rules and annotation handoff:
+[Trip export v1](../docs/TRIP_EXPORT_FORMAT.md).
+
+Build both APKs with the model property shown above and install using `adb install
+-r` to retain existing trips. Then run the block 8 checks:
+
+```powershell
+adb shell am instrument -w -e class dev.diyhud.TripReviewTest,dev.diyhud.TripReviewUiTest,dev.diyhud.SampleSessionTest dev.diyhud.test/androidx.test.runner.AndroidJUnitRunner
+```
+
+Unlock the Pixel for Activity/camera checks. Fixtures use synthetic RGB and
+isolated databases/cache files; the UI integration test cleans up only its own
+newly generated trip. Results: [Trip review checks](../docs/TRIP_REVIEW_RESULTS.md).

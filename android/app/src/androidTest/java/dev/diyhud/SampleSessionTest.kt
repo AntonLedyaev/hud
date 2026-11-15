@@ -33,6 +33,8 @@ class SampleSessionTest {
             assertFalse(model.ui.value.samplingEnabled)
             model.sampleMode(true); model.start()
             await { model.ui.value.phase == Phase.ACTIVE }
+            assertFalse("Review must be unavailable during recognition", model.openReview())
+            assertFalse(model.ui.value.reviewOpen)
             val token = model.token()!!; ids += token.sessionId
             model.offer(RgbFrame(token, 42, 0, ByteArray(18) { (it * 11).toByte() }, 2, 3, 90))
             await { model.ui.value.samples?.saved == 1L }

@@ -38,8 +38,15 @@ data class SampleEntity(
     @Update fun updateSession(row: SessionEntity)
     @Query("SELECT * FROM sessions WHERE id = :id") fun session(id: String): SessionEntity?
     @Query("SELECT * FROM sessions ORDER BY startedAtEpochMs DESC") fun sessions(): List<SessionEntity>
+    @Query("SELECT * FROM sessions WHERE status != 'OPEN' ORDER BY startedAtEpochMs DESC, id LIMIT :limit OFFSET :offset")
+    fun sessionPage(offset: Int, limit: Int = 50): List<SessionEntity>
+    @Query("DELETE FROM sessions WHERE id = :id") fun deleteSession(id: String)
     @Query("SELECT * FROM events WHERE sessionId = :id AND sequence > :after ORDER BY sequence LIMIT :limit")
     fun events(id: String, after: Long = -1, limit: Int = 256): List<EventEntity>
+    @Query("SELECT * FROM events WHERE sessionId = :id AND sequence = :sequence")
+    fun event(id: String, sequence: Long): EventEntity?
+    @Query("SELECT * FROM events WHERE sessionId = :id AND sequence > :after AND (:includeTicks OR kind != 'tick') ORDER BY sequence LIMIT 100")
+    fun reviewEvents(id: String, after: Long, includeTicks: Boolean): List<EventEntity>
     @Query("UPDATE sessions SET status = 'INTERRUPTED', endReason = 'process_interrupted', incomplete = 1, recoveredAtEpochMs = :now WHERE status = 'OPEN'")
     fun recover(now: Long): Int
 }

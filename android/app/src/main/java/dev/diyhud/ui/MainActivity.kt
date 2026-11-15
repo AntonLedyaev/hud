@@ -10,6 +10,7 @@ import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.ViewModelProvider
@@ -26,6 +27,8 @@ import dev.diyhud.session.*
 
 class MainActivity : ComponentActivity() {
     internal val coordinator: HudViewModel by lazy { ViewModelProvider(this)[HudViewModel::class.java] }
+    internal val trips: TripsViewModel by lazy { ViewModelProvider(this, TripsViewModel.factory(application, coordinator))[TripsViewModel::class.java] }
+    private val exportDestination = registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri -> trips.export(uri) }
     private val cameraPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted && lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) coordinator.start()
         else coordinator.permissionDenied()
@@ -39,16 +42,26 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             val ui by coordinator.ui.collectAsState()
+            val review by trips.ui.collectAsState()
+            BackHandler(ui.reviewOpen) {
+                if (!review.busy) when {
+                    review.preview != null -> trips.closePreview()
+                    review.detail != null -> trips.backToList()
+                    else -> coordinator.closeReview()
+                }
+            }
             DisposableEffect(ui.phase == Phase.ACTIVE) {
                 if (ui.phase == Phase.ACTIVE) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
                 onDispose { window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON) }
             }
             MaterialTheme(colorScheme = darkColorScheme()) {
                 Surface(Modifier.fillMaxSize()) {
-                    HudScreen(ui, coordinator, ::startRecognition) {
+                    if (ui.reviewOpen) TripsScreen(review, trips, { coordinator.closeReview() }) {
+                        trips.requestExport()?.let { exportDestination.launch(it) }
+                    } else HudScreen(ui, coordinator, ::startRecognition, {
                         startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
                             Uri.fromParts("package", packageName, null)))
-                    }
+                    }) { if (coordinator.openReview()) trips.list() }
                 }
             }
         }
@@ -59,7 +72,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@Composable private fun HudScreen(ui: HudUi, model: HudViewModel, start: () -> Unit, settings: () -> Unit) {
+@Composable private fun HudScreen(ui: HudUi, model: HudViewModel, start: () -> Unit, settings: () -> Unit, trips: () -> Unit) {
     val idle = ui.phase == Phase.READY || ui.phase == Phase.ERROR
     Column(Modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()).padding(20.dp),
         horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -112,6 +125,7 @@ class MainActivity : ComponentActivity() {
         }
         if (ui.phase == Phase.STOPPING) Text("Closing session and saving local events...")
         if (idle) TextButton(onClick = settings) { Text("App settings") }
+        if (idle) OutlinedButton(onClick = trips) { Text("Trips") }
         CameraPanel(ui, model)
         Text("Experimental driver assistant · Always follow road signs.", style = MaterialTheme.typography.bodySmall)
     }

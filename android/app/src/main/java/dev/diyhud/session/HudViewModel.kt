@@ -31,6 +31,7 @@ data class HudUi(
     val confirmation: ConfirmationDebug? = null,
     val evidence: EvidenceStatus? = null,
     val samplingEnabled: Boolean = false, val samples: SampleStatus? = null,
+    val reviewOpen: Boolean = false,
 )
 
 /** Serializes domain updates separately from slow native inference. No camera buffer crosses workers. */
@@ -51,6 +52,18 @@ class HudViewModel(application: Application) : AndroidViewModel(application) {
     private var lastResultMs = 0L
     private var request = 0L
     private var cleared = false
+    private val accessOwner = Any()
+    fun openReview(): Boolean = synchronized(lock) {
+        if (mutableUi.value.phase !in listOf(Phase.READY, Phase.ERROR) || !EvidenceAccess.shared.open(accessOwner)) return false
+        mutableUi.value = mutableUi.value.copy(reviewOpen = true)
+        true
+    }
+    fun closeReview() = synchronized(lock) {
+        EvidenceAccess.shared.close(accessOwner)
+        mutableUi.value = mutableUi.value.copy(reviewOpen = false)
+    }
+    fun reviewOperation(): AutoCloseable = EvidenceAccess.shared.operation(accessOwner)
+    fun canReview() = EvidenceAccess.shared.allowed(accessOwner)
     init {
         try {
             RoomEvidenceStore.worker.execute {
@@ -106,10 +119,14 @@ class HudViewModel(application: Application) : AndroidViewModel(application) {
             access != AppOpsManager.MODE_IGNORED && access != AppOpsManager.MODE_ERRORED
     }
     fun start() = synchronized(lock) {
-        if (cleared || mutableUi.value.phase !in listOf(Phase.READY, Phase.ERROR)) return
+        if (cleared || mutableUi.value.reviewOpen || mutableUi.value.phase !in listOf(Phase.READY, Phase.ERROR)) return
         if (!cameraAccessAllowed()) {
             mutableUi.value = mutableUi.value.copy(phase = Phase.ERROR,
                 message = "Camera access is blocked. Allow camera access in App settings, then press Start.")
+            return
+        }
+        if (!EvidenceAccess.shared.start(accessOwner)) {
+            mutableUi.value = mutableUi.value.copy(message = "Finish reviewing/exporting evidence before Start.")
             return
         }
         val attempt = ++request
@@ -225,6 +242,7 @@ class HudViewModel(application: Application) : AndroidViewModel(application) {
         inferenceWorker.execute {
             detector?.close(); detector = null
             fun complete() = synchronized(lock) {
+                EvidenceAccess.shared.stop(accessOwner)
                 evidence = null; sampler = null
                 mutableUi.value = mutableUi.value.copy(phase = if (error) Phase.ERROR else Phase.READY,
                     evidence = writer?.snapshot(), samples = images?.snapshot(), samplingEnabled = false)
@@ -238,6 +256,7 @@ class HudViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
     override fun onCleared() {
+        closeReview()
         stop()
         synchronized(lock) { cleared = true }
         clockWorker.shutdownNow(); cameraWorker.shutdown(); inferenceWorker.shutdown()
